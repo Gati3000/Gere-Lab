@@ -6,11 +6,20 @@ Read this its important cuz there are instrucions how to install this tool and h
 Copy past these commands. Ofc READ them before running its fckin safety
 
 sudo apt install git python3-venv
-git clone <Link do repo>
+git clone https://github.com/Gati3000/Gere-Lab/Main
+sudo -i
+cd Gere-Lab/App && Launcher.py
 
 
 # Terminal self-commands
 Lab -up # Starts programm
+Lab start
+
+Lab stop # turn off Tool
+Lab -s 
+
+Lab update # update 
+Lab update -b # Update to Beta
 
 # Bugs n questions
 
