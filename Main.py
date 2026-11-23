@@ -7,7 +7,7 @@ from pathlib import Path
 import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "App"))
-from Paths import WEB_UI_BIN, WHATSAPP_BUSINESS, WEB_CONFIG
+from Paths import WEB_UI_BIN, WHATSAPP_BUSINESS, WEB_CONFIG, INQUIRIES
 
 WEB_SERVE = WEB_UI_BIN / "Web-Ui.py"
 PORT = 8080
@@ -41,6 +41,13 @@ def main():
         wa = subprocess.Popen([sys.executable, str(WHATSAPP_BUSINESS)])
         print(f"WhatsApp webhook started (PID {wa.pid})", flush=True)
 
+    inq = None
+    if INQUIRIES.is_file():
+        inq = subprocess.Popen([sys.executable, str(INQUIRIES), "run"])
+        print(f"Inquiries processor started (PID {inq.pid})", flush=True)
+    else:
+        print(f"Brak pliku: {INQUIRIES}", flush=True)
+
     try:
         while not stop.is_set():
             code = web.poll()
@@ -49,9 +56,12 @@ def main():
             if wa is not None and wa.poll() is not None:
                 print(f"WhatsApp webhook zakończył się (kod {wa.returncode}), Web UI działa dalej.", flush=True)
                 wa = None
+            if inq is not None and inq.poll() is not None:
+                print(f"Inquiries processor zakończył się (kod {inq.returncode}), Web UI działa dalej.", flush=True)
+                inq = None
             stop.wait(1)
     finally:
-        for name, proc in (("WhatsApp webhook", wa), ("Web UI", web)):
+        for name, proc in (("Inquiries processor", inq), ("WhatsApp webhook", wa), ("Web UI", web)):
             if proc is not None and proc.poll() is None:
                 proc.terminate()
                 try:
