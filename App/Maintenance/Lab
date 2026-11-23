@@ -13,7 +13,7 @@ SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
 MAINT_DIR="$(dirname "$SCRIPT_PATH")"
 APP_DIR="$(dirname "$MAINT_DIR")"
 REPO_DIR="$(dirname "$APP_DIR")"
-MAIN_PY="$APP_DIR/Main.py"
+MAIN_PY="$REPO_DIR/Main.py"
 UPDATE_PY="$APP_DIR/Update.py"
 
 RUN_DIR="${TMPDIR:-/tmp}/gere-lab"

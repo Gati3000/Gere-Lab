@@ -6,7 +6,7 @@ const Common = (() => {
   const t = k => (dict[lang] && dict[lang][k]) || (dict.en && dict.en[k]) || k;
   async function load(code) {
     if (dict[code]) return;
-    try { const r = await fetch("lang/" + code + ".json", { cache: "no-store" }); dict[code] = await r.json(); }
+    try { const r = await fetch("/Language/" + code + ".json", { cache: "no-store" }); dict[code] = await r.json(); }
     catch (e) { dict[code] = {}; console.error("lang load failed:", code, e); }
   }
   function apply() {
