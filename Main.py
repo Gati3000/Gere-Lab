@@ -15,7 +15,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent / "App"))
 from Paths import WEB_UI_BIN
 
-WEB_SERVE = WEB_UI_BIN / "Web-Serve.py"
+WEB_SERVE = WEB_UI_BIN / "Web-Ui.py"
 PORT = 8080 
 
 

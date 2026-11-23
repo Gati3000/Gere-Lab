@@ -11,29 +11,99 @@
   <div class="brand">Gere Lab</div>
   <div class="tools">
     <div class="row">
-      <button class="btn" id="themeBtn" type="button"></button>
-      <select id="langSel" aria-label="Language">
-        <option value="pl">Polski</option>
-        <option value="en">English</option>
-        <option value="es">Español</option>
-      </select>
-      <a class="btn" href="Home.html" data-i18n="home"></a>
-    </div>
-    <div class="row">
-      <a class="btn" href="Index.html" data-i18n="links"></a>
+      <a class="btn" href="Home.html" data-i18n="back"></a>
     </div>
   </div>
 </header>
 <main class="page">
   <section class="window">
-    <h2 data-i18n="settingsTitle"></h2>
+    <h2 class="head">
+      <span data-i18n="settingsTitle"></span>
+      <span class="headtools"><span class="note" id="saveNote"></span><button class="btn primary" id="saveBtn" type="button" data-i18n="save"></button></span>
+    </h2>
     <div class="content">
-      <div class="block"><h3 data-i18n="appearance"></h3><p data-i18n="appearanceHint"></p></div>
-      <div class="block"><p data-i18n="soon"></p></div>
+      <h3 class="sectiontitle" data-i18n="waTitle"></h3>
+      <div class="block">
+        <div class="blockhead">
+          <h3 data-i18n="waCloud"></h3>
+          <label class="check"><input data-k="cloud_api.enabled" type="checkbox"><span data-i18n="waUse"></span></label>
+        </div>
+        <p data-i18n="waCloudHint"></p>
+        <div class="fields">
+        <label><span data-i18n="waPhoneId"></span><input data-k="cloud_api.phone_number_id" type="text" autocomplete="off"></label>
+        <label><span data-i18n="waVerifyToken"></span><input data-k="cloud_api.verify_token" type="password" autocomplete="off"></label>
+        <label><span data-i18n="waAppSecret"></span><input data-k="cloud_api.app_secret" type="password" autocomplete="off"></label>
+        <label><span data-i18n="waAccessToken"></span><input data-k="cloud_api.access_token" type="password" autocomplete="off"></label>
+        <label><span data-i18n="waHost"></span><input data-k="cloud_api.host" type="text" autocomplete="off" placeholder="0.0.0.0"></label>
+        <label><span data-i18n="waPort"></span><input data-k="cloud_api.port" type="text" autocomplete="off" placeholder="8081"></label>
+        <label><span data-i18n="waPath"></span><input data-k="cloud_api.path" type="text" autocomplete="off" placeholder="/webhook"></label>
+        </div>
+      </div>
+      <div class="block">
+        <div class="blockhead">
+          <h3 data-i18n="waBridge"></h3>
+          <label class="check"><input data-k="bridge.enabled" type="checkbox"><span data-i18n="waUse"></span></label>
+        </div>
+        <p data-i18n="waBridgeHint"></p>
+        <div class="fields">
+        <label><span data-i18n="waUrl"></span><input data-k="bridge.url" type="text" autocomplete="off" placeholder="http://localhost:3000"></label>
+        <label><span data-i18n="waApiKey"></span><input data-k="bridge.api_key" type="password" autocomplete="off"></label>
+        <label><span data-i18n="waSession"></span><input data-k="bridge.session" type="text" autocomplete="off" placeholder="default"></label>
+        </div>
+      </div>
+      <div class="block">
+        <div class="blockhead">
+          <h3 data-i18n="waProvider"></h3>
+          <label class="check"><input data-k="provider.enabled" type="checkbox"><span data-i18n="waUse"></span></label>
+        </div>
+        <p data-i18n="waProviderHint"></p>
+        <div class="fields">
+        <label><span data-i18n="waAccountId"></span><input data-k="provider.account_id" type="text" autocomplete="off"></label>
+        <label><span data-i18n="waAuthToken"></span><input data-k="provider.auth_token" type="password" autocomplete="off"></label>
+        <label><span data-i18n="waSender"></span><input data-k="provider.sender_number" type="text" autocomplete="off" placeholder="+34"></label>
+        </div>
+      </div>
     </div>
   </section>
 </main>
 <script src="../Bin/Common.js"></script>
-<script>Common.init();</script>
+<script>
+Common.init();
+const fields = [...document.querySelectorAll("[data-k]")];
+const note = document.getElementById("saveNote");
+const split = el => el.dataset.k.split(".");
+function fill(data) {
+  const wa = (data && data.whatsapp) || {};
+  fields.forEach(el => {
+    const [s, k] = split(el), v = (wa[s] || {})[k];
+    if (el.type === "checkbox") el.checked = v === true;
+    else el.value = v ?? "";
+  });
+}
+function collect() {
+  const out = {};
+  fields.forEach(el => {
+    const [s, k] = split(el);
+    (out[s] = out[s] || {})[k] = el.type === "checkbox" ? el.checked : el.value.trim();
+  });
+  return { whatsapp: out };
+}
+async function load() {
+  try {
+    const r = await fetch("/api/config", { cache: "no-store" });
+    if (!r.ok) throw new Error(r.status);
+    fill(await r.json());
+  } catch (e) { note.textContent = Common.t("loadFailed"); console.error("config load failed:", e); }
+}
+document.getElementById("saveBtn").onclick = async () => {
+  try {
+    const r = await fetch("/api/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(collect()) });
+    if (!r.ok) throw new Error(r.status);
+    fill(await r.json());
+    note.textContent = Common.t("saved");
+  } catch (e) { note.textContent = Common.t("saveFailed"); console.error("config save failed:", e); }
+};
+load();
+</script>
 </body>
 </html>

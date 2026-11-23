@@ -53,3 +53,16 @@ body { background:var(--bg); color:var(--text); font-family:system-ui,"Segoe UI"
 .linkrow { display:flex; justify-content:space-between; align-items:center; gap:12px; }
 .linkrow .name { font-weight:600; }
 .linkrow .desc { color:var(--muted); font-size:.85rem; }
+.fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; margin-top:12px; }
+.fields label { display:flex; flex-direction:column; gap:4px; color:var(--muted); font-size:.85rem; }
+.fields input { background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:8px 10px; font:inherit; }
+.savebar { display:flex; align-items:center; gap:12px; }
+.savebar .note { color:var(--muted); }
+.window > h2.head { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.head .headtools { display:flex; align-items:center; gap:12px; font-weight:400; }
+.head .btn { padding:5px 14px; }
+.head .note { color:var(--muted); font-size:.85rem; }
+.sectiontitle { margin:0; }
+.blockhead { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.check { display:flex; align-items:center; gap:6px; cursor:pointer; }
+.modal .fields { grid-template-columns:1fr; margin:12px 0; }

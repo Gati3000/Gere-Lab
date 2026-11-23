@@ -12,7 +12,7 @@ from pathlib import Path
 import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from WU_Extractor import extract
+from WhatsApp.WA_Extractor import extract
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
