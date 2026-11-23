@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pl" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gere Lab</title>
+<link rel="stylesheet" href="Themes.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">Gere Lab</div>
+  <div class="tools">
+    <div class="row">
+      <button class="btn" id="themeBtn" type="button"></button>
+      <select id="langSel" aria-label="Language">
+        <option value="pl">Polski</option>
+        <option value="en">English</option>
+        <option value="es">Español</option>
+      </select>
+      <a class="btn" href="Settings.html" data-i18n="settings"></a>
+    </div>
+    <div class="row">
+      <a class="btn" href="Index.html" data-i18n="links"></a>
+    </div>
+  </div>
+</header>
+
+<main class="layout">
+  <section class="window">
+    <h2 data-i18n="messages"></h2>
+    <div class="content" id="messages"></div>
+  </section>
+  <section class="window">
+    <h2 data-i18n="labels"></h2>
+    <div class="content" id="labels"></div>
+  </section>
+</main>
+
+<div class="modal-bg" id="rejectModal">
+  <div class="modal">
+    <h3 data-i18n="rejectTitle"></h3>
+    <p data-i18n="rejectHint"></p>
+    <textarea id="rejectReason" data-i18n-ph="reasonPh"></textarea>
+    <div class="actions">
+      <button class="btn ghost" id="rejectCancel" type="button" data-i18n="cancel"></button>
+      <button class="btn primary" id="rejectSend" type="button" data-i18n="send"></button>
+    </div>
+  </div>
+</div>
+
+<script src="Common.js"></script>
+<script>
+// PRZYKŁADOWE DANE - później podmienimy na API z backendu (Database/inbox)
+const MESSAGES = [
+  { from:"Jan",   time:"14:32", text:"Potrzebuję alternatora do Passata B6, wysyłka InPost." },
+  { from:"Marta", time:"14:10", text:"Proszę o wysyłkę amortyzatorów przód, 2 szt." },
+  { from:"Jan",   time:"13:55", text:"Adres bez zmian jak ostatnio." }
+];
+const LABELS = [
+  { id:1, to:"Jan Przykładowy",   address:"ul. Testowa 1, 30-001 Kraków",  part:"Alternator (Passat B6)",   carrier:"InPost" },
+  { id:2, to:"Marta Przykładowa", address:"ul. Próbna 5, 00-950 Warszawa", part:"Amortyzatory przód x2",    carrier:"DPD" }
+];
+const state = {};   // id -> "accepted" | "rejected"
+let rejectId = null;
+
+const $ = id => document.getElementById(id);
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+
+function renderMessages() {
+  const box = $("messages"); box.replaceChildren();
+  if (!MESSAGES.length) { box.append(el("div","empty",Common.t("noMessages"))); return; }
+  MESSAGES.forEach(m => {
+    const d = el("div","msg"), meta = el("div","meta");
+    meta.append(el("span","",m.from), el("span","",m.time));
+    d.append(meta, el("div","",m.text)); box.append(d);
+  });
+}
+
+function renderLabels() {
+  const box = $("labels"); box.replaceChildren();
+  if (!LABELS.length) { box.append(el("div","empty",Common.t("noLabels"))); return; }
+  LABELS.forEach(l => {
+    const card = el("div","card"), dl = el("dl");
+    [["recipient",l.to],["address",l.address],["part",l.part],["carrier",l.carrier]].forEach(([k,v]) => {
+      dl.append(el("dt","",Common.t(k)), el("dd","",v));
+    });
+    card.append(dl);
+    if (state[l.id]) {
+      card.classList.add("done");
+      card.append(el("div","status",Common.t(state[l.id])));
+    } else {
+      const a = el("div","actions");
+      const ok = el("button","btn primary",Common.t("accept")), no = el("button","btn",Common.t("reject"));
+      ok.type = no.type = "button";
+      ok.onclick = () => { state[l.id] = "accepted"; renderLabels(); /* TODO: POST /api/labels/ID/accept */ };
+      no.onclick = () => { rejectId = l.id; $("rejectReason").value = ""; $("rejectModal").classList.add("open"); $("rejectReason").focus(); };
+      a.append(ok, no); card.append(a);
+    }
+    box.append(card);
+  });
+}
+
+function closeModal() { $("rejectModal").classList.remove("open"); rejectId = null; }
+$("rejectCancel").onclick = closeModal;
+$("rejectModal").onclick = e => { if (e.target.id === "rejectModal") closeModal(); };
+$("rejectSend").onclick = () => {
+  const reason = $("rejectReason").value.trim();
+  if (rejectId !== null) { state[rejectId] = "rejected"; console.log("reject", rejectId, reason); /* TODO: POST /api/labels/ID/reject {reason} */ }
+  closeModal(); renderLabels();
+};
+
+document.addEventListener("uichange", () => { renderMessages(); renderLabels(); });
+Common.init();
+</script>
+</body>
+</html>

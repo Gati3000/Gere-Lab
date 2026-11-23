@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pl" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gere Lab - Links</title>
+<link rel="stylesheet" href="Themes.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">Gere Lab</div>
+  <div class="tools">
+    <div class="row">
+      <button class="btn" id="themeBtn" type="button"></button>
+      <select id="langSel" aria-label="Language">
+        <option value="pl">Polski</option>
+        <option value="en">English</option>
+        <option value="es">Español</option>
+      </select>
+      <a class="btn" href="Home.html" data-i18n="home"></a>
+    </div>
+    <div class="row">
+      <a class="btn" href="Settings.html" data-i18n="settings"></a>
+    </div>
+  </div>
+</header>
+<main class="page">
+  <section class="window">
+    <h2 data-i18n="linksTitle"></h2>
+    <div class="content" id="links"></div>
+  </section>
+</main>
+<script src="Common.js"></script>
+<script>
+// Edytuj tutaj: name, url, desc
+const LINKS = [
+  { name: "Home",     url: "Home.html",     desc: "WhatsApp + etykiety" },
+  { name: "Settings", url: "Settings.html", desc: "Ustawienia" }
+];
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+function renderLinks() {
+  const box = document.getElementById("links"); box.replaceChildren();
+  LINKS.forEach(l => {
+    const row = el("div", "block linkrow"), left = el("div");
+    left.append(el("div", "name", l.name), el("div", "desc", l.desc));
+    const a = el("a", "btn primary", Common.t("open")); a.href = l.url;
+    row.append(left, a); box.append(row);
+  });
+  const hint = el("div", "empty", Common.t("linksHint")); box.append(hint);
+}
+document.addEventListener("uichange", renderLinks);
+Common.init();
+</script>
+</body>
+</html>

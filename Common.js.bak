@@ -1,0 +1,45 @@
+const I18N = {
+  pl: { settings:"Ustawienia", links:"Linki stron", light:"Jasny", dark:"Ciemny",
+    messages:"Najnowsze wiadomości z WhatsApp", labels:"Etykiety do akceptacji",
+    noMessages:"Brak wiadomości", noLabels:"Brak etykiet do sprawdzenia",
+    accept:"Akceptuj", reject:"Odrzuć", recipient:"Odbiorca", address:"Adres", part:"Część", carrier:"Przewoźnik",
+    accepted:"Zaakceptowano", rejected:"Odrzucono", rejectTitle:"Co jest nie tak?",
+    rejectHint:"Opisz, co trzeba poprawić w tej etykiecie.", reasonPh:"Np. zły adres, błędny numer części...",
+    send:"Wyślij", cancel:"Anuluj" },
+  en: { settings:"Settings", links:"Site links", light:"Light", dark:"Dark",
+    messages:"Latest WhatsApp messages", labels:"Labels to approve",
+    noMessages:"No messages", noLabels:"No labels to review",
+    accept:"Accept", reject:"Reject", recipient:"Recipient", address:"Address", part:"Part", carrier:"Carrier",
+    accepted:"Accepted", rejected:"Rejected", rejectTitle:"What is wrong?",
+    rejectHint:"Describe what needs to be fixed on this label.", reasonPh:"E.g. wrong address, wrong part number...",
+    send:"Send", cancel:"Cancel" },
+  es: { settings:"Ajustes", links:"Enlaces", light:"Claro", dark:"Oscuro",
+    messages:"Últimos mensajes de WhatsApp", labels:"Etiquetas por aprobar",
+    noMessages:"Sin mensajes", noLabels:"Sin etiquetas por revisar",
+    accept:"Aceptar", reject:"Rechazar", recipient:"Destinatario", address:"Dirección", part:"Pieza", carrier:"Transportista",
+    accepted:"Aceptada", rejected:"Rechazada", rejectTitle:"¿Qué está mal?",
+    rejectHint:"Describe qué hay que corregir en esta etiqueta.", reasonPh:"Ej.: dirección incorrecta, número de pieza erróneo...",
+    send:"Enviar", cancel:"Cancelar" }
+};
+const Common = (() => {
+  const get = (k, d) => { try { return localStorage.getItem(k) || d; } catch (e) { return d; } };
+  const put = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+  let lang = get("lang", "pl"), theme = get("theme", "dark");
+  const t = k => (I18N[lang] && I18N[lang][k]) || I18N.en[k] || k;
+  function apply() {
+    document.documentElement.setAttribute("data-theme", theme);
+    document.documentElement.lang = lang;
+    document.querySelectorAll("[data-i18n]").forEach(e => e.textContent = t(e.dataset.i18n));
+    document.querySelectorAll("[data-i18n-ph]").forEach(e => e.placeholder = t(e.dataset.i18nPh));
+    const tb = document.getElementById("themeBtn"); if (tb) tb.textContent = theme === "dark" ? t("light") : t("dark");
+    const ls = document.getElementById("langSel"); if (ls) ls.value = lang;
+    document.dispatchEvent(new Event("uichange"));
+  }
+  function init() {
+    const tb = document.getElementById("themeBtn"), ls = document.getElementById("langSel");
+    if (tb) tb.onclick = () => { theme = theme === "dark" ? "light" : "dark"; put("theme", theme); apply(); };
+    if (ls) ls.onchange = () => { lang = ls.value; put("lang", lang); apply(); };
+    apply();
+  }
+  return { t, init };
+})();

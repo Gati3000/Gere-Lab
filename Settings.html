@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pl" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gere Lab - Settings</title>
+<link rel="stylesheet" href="Themes.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">Gere Lab</div>
+  <div class="tools">
+    <div class="row">
+      <button class="btn" id="themeBtn" type="button"></button>
+      <select id="langSel" aria-label="Language">
+        <option value="pl">Polski</option>
+        <option value="en">English</option>
+        <option value="es">Español</option>
+      </select>
+      <a class="btn" href="Home.html" data-i18n="home"></a>
+    </div>
+    <div class="row">
+      <a class="btn" href="Index.html" data-i18n="links"></a>
+    </div>
+  </div>
+</header>
+<main class="page">
+  <section class="window">
+    <h2 data-i18n="settingsTitle"></h2>
+    <div class="content">
+      <div class="block"><h3 data-i18n="appearance"></h3><p data-i18n="appearanceHint"></p></div>
+      <div class="block"><p data-i18n="soon"></p></div>
+    </div>
+  </section>
+</main>
+<script src="Common.js"></script>
+<script>Common.init();</script>
+</body>
+</html>
