@@ -1,0 +1,157 @@
+#!/usr/bin/env bash
+# Lab - narzędzie CLI do zarządzania Gere-Lab
+#   Lab start | -up        uruchamia App/Main.py
+#   Lab stop  | -s         zatrzymuje program
+#   Lab update             aktualizuje z gałęzi główną i uruchamia Update.py
+#   Lab update -b          aktualizuje z gałęzi Beta
+
+MAIN_BRANCH="main"    # zmień na "Main", jeśli tak nazywa się Twoja gałąź
+BETA_BRANCH="Beta"
+
+# Rozwiązuje symlink, więc działa też po instalacji do /usr/local/bin
+SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+MAINT_DIR="$(dirname "$SCRIPT_PATH")"
+APP_DIR="$(dirname "$MAINT_DIR")"
+REPO_DIR="$(dirname "$APP_DIR")"
+MAIN_PY="$APP_DIR/Main.py"
+UPDATE_PY="$APP_DIR/Update.py"
+
+RUN_DIR="${TMPDIR:-/tmp}/gere-lab"
+PID_FILE="$RUN_DIR/lab.pid"
+LOG_FILE="$RUN_DIR/lab.log"
+mkdir -p "$RUN_DIR"
+
+is_running() {
+    [[ -f "$PID_FILE" ]] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null
+}
+
+lab_start() {
+    if is_running; then
+        echo "Gere-Lab już działa (PID $(cat "$PID_FILE"))."
+        return 0
+    fi
+    if [[ ! -f "$MAIN_PY" ]]; then
+        echo "Błąd: nie znaleziono $MAIN_PY" >&2
+        return 1
+    fi
+    setsid nohup python3 "$MAIN_PY" >> "$LOG_FILE" 2>&1 &
+    echo $! > "$PID_FILE"
+    sleep 1
+    if is_running; then
+        echo "Uruchomiono Gere-Lab (PID $(cat "$PID_FILE"))."
+    else
+        rm -f "$PID_FILE"
+        echo "Program zakończył się zaraz po starcie. Log: $LOG_FILE" >&2
+        return 1
+    fi
+}
+
+lab_stop() {
+    if ! is_running; then
+        echo "Gere-Lab nie jest uruchomiony."
+        rm -f "$PID_FILE"
+        return 0
+    fi
+    local pid
+    pid="$(cat "$PID_FILE")"
+    kill -TERM -- "-$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    for _ in {1..10}; do
+        kill -0 "$pid" 2>/dev/null || break
+        sleep 1
+    done
+    if kill -0 "$pid" 2>/dev/null; then
+        kill -KILL -- "-$pid" 2>/dev/null || kill -KILL "$pid" 2>/dev/null
+        echo "Wymuszono zatrzymanie (PID $pid)."
+    else
+        echo "Zatrzymano Gere-Lab."
+    fi
+    rm -f "$PID_FILE"
+}
+
+lab_update() {
+    local branch="$MAIN_BRANCH"
+    [[ "${1:-}" == "-b" ]] && branch="$BETA_BRANCH"
+
+    if ! git -C "$REPO_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        echo "Błąd: $REPO_DIR nie jest repozytorium git." >&2
+        return 1
+    fi
+
+    echo "Sprawdzam gałąź $branch..."
+    git -C "$REPO_DIR" fetch origin "$branch" || {
+        echo "Błąd: nie udało się pobrać z origin/$branch." >&2
+        return 1
+    }
+
+    local current local_sha remote_sha
+    current="$(git -C "$REPO_DIR" rev-parse --abbrev-ref HEAD)"
+    remote_sha="$(git -C "$REPO_DIR" rev-parse "origin/$branch")"
+    local_sha="$(git -C "$REPO_DIR" rev-parse "refs/heads/$branch" 2>/dev/null || true)"
+
+    if [[ "$current" == "$branch" && "$local_sha" == "$remote_sha" ]]; then
+        echo "Brak zmian. Masz najnowszą wersję ($branch)."
+        return 0
+    fi
+
+    # Nie nadpisujemy niezacommitowanych zmian
+    if ! git -C "$REPO_DIR" diff --quiet HEAD --; then
+        echo "Masz niezacommitowane zmiany. Zrób commit lub 'git stash' i spróbuj ponownie." >&2
+        return 1
+    fi
+
+    echo "Znaleziono zmiany. Aktualizuję..."
+    local was_running=0
+    if is_running; then
+        was_running=1
+        lab_stop
+    fi
+
+    if [[ "$current" != "$branch" ]]; then
+        git -C "$REPO_DIR" checkout "$branch" || return 1
+    fi
+    git -C "$REPO_DIR" pull --ff-only origin "$branch" || {
+        echo "Błąd: pull nie przeszedł (historia się rozjechała?)." >&2
+        return 1
+    }
+
+    if [[ -f "$UPDATE_PY" ]]; then
+        echo "Uruchamiam Update.py..."
+        python3 "$UPDATE_PY" || {
+            echo "Update.py zakończył się błędem." >&2
+            return 1
+        }
+    else
+        echo "Uwaga: brak $UPDATE_PY, pomijam aktualizację z Manifestu."
+    fi
+
+    echo "Zaktualizowano do $(git -C "$REPO_DIR" rev-parse --short HEAD) ($branch)."
+    [[ $was_running -eq 1 ]] && lab_start
+    return 0
+}
+
+lab_help() {
+    cat << HELP
+Użycie: Lab <komenda>
+
+  start, -up      uruchom Main.py
+  stop,  -s       zatrzymaj program
+  update          sprawdź gałąź $MAIN_BRANCH, pobierz zmiany i uruchom Update.py
+  update -b       to samo dla gałęzi $BETA_BRANCH
+  help,  -h       ta pomoc
+HELP
+}
+
+main() {
+    case "${1:-}" in
+        start|-up) lab_start ;;
+        stop|-s)   lab_stop ;;
+        update)    lab_update "${2:-}" ;;
+        help|-h|"") lab_help ;;
+        *) echo "Nieznana komenda: $1" >&2; lab_help; return 1 ;;
+    esac
+}
+
+# Cały skrypt jest wczytany przed wykonaniem, więc git pull może bezpiecznie
+# podmienić ten plik w trakcie działania.
+main "$@"
+exit $?
