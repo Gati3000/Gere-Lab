@@ -110,7 +110,24 @@ $("rejectSend").onclick = () => {
 };
 
 document.addEventListener("uichange", () => { renderMessages(); renderLabels(); });
+async function loadMessages() {
+  try {
+    const r = await fetch("/api/messages", { cache: "no-store" });
+    if (!r.ok) throw new Error(r.status);
+    const data = await r.json();
+    MESSAGES.length = 0;
+    (data.messages || []).forEach(m => MESSAGES.push({
+      from: m.from || "",
+      time: String(m.time || "").slice(5, 16).replace("T", " "),
+      text: m.text || ""
+    }));
+    renderMessages();
+  } catch (e) { console.error("messages load failed:", e); }
+}
+MESSAGES.length = 0;
 Common.init();
+loadMessages();
+setInterval(loadMessages, 10000);
 </script>
 </body>
 </html>

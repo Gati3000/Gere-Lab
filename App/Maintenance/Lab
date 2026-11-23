@@ -16,6 +16,13 @@ REPO_DIR="$(dirname "$APP_DIR")"
 MAIN_PY="$REPO_DIR/Main.py"
 UPDATE_PY="$APP_DIR/Update.py"
 
+# Drugie repo: Gere-Drive leży obok Gere-Lab
+DRIVE_DIR="$(dirname "$REPO_DIR")/Gere-Drive"
+DRIVE_URL="https://github.com/Gati3000/Gere-Drive.git"
+DRIVE_BRANCH="main"
+SETUP_SH="$MAINT_DIR/Setup.sh"
+SETUP_MARK="$HOME/.config/gere-lab/first-run-done"
+
 RUN_DIR="${TMPDIR:-/tmp}/gere-lab"
 PID_FILE="$RUN_DIR/lab.pid"
 LOG_FILE="$RUN_DIR/lab.log"
@@ -68,9 +75,34 @@ lab_stop() {
     rm -f "$PID_FILE"
 }
 
+drive_sync() {
+    if [[ ! -d "$DRIVE_DIR/.git" ]]; then
+        echo "Gere-Drive: nie jest pobrane (uruchom: Lab setup), pomijam."
+        return 0
+    fi
+    git -C "$DRIVE_DIR" fetch origin "$DRIVE_BRANCH" || {
+        echo "Gere-Drive: nie udało się pobrać origin/$DRIVE_BRANCH." >&2
+        return 1
+    }
+    local cur
+    cur="$(git -C "$DRIVE_DIR" rev-parse --abbrev-ref HEAD)"
+    if [[ "$cur" != "$DRIVE_BRANCH" ]]; then
+        echo "Gere-Drive: jesteś na gałęzi $cur, pomijam." >&2
+        return 1
+    fi
+    if ! git -C "$DRIVE_DIR" diff --quiet HEAD --; then
+        echo "Gere-Drive: są niezacommitowane zmiany w śledzonych plikach, pomijam pull." >&2
+        return 1
+    fi
+    git -C "$DRIVE_DIR" pull --ff-only origin "$DRIVE_BRANCH" || return 1
+    echo "Gere-Drive: aktualne ($(git -C "$DRIVE_DIR" rev-parse --short HEAD))."
+}
+
 lab_update() {
     local branch="$MAIN_BRANCH"
     [[ "${1:-}" == "-b" ]] && branch="$BETA_BRANCH"
+
+    drive_sync || echo "Uwaga: Gere-Drive nie zostało zaktualizowane." >&2
 
     if ! git -C "$REPO_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
         echo "Błąd: $REPO_DIR nie jest repozytorium git." >&2
@@ -129,6 +161,18 @@ lab_update() {
     return 0
 }
 
+first_run() {
+    [[ -f "$SETUP_MARK" ]] && return 0
+    if [[ ! -t 0 ]]; then
+        echo "Pierwsze uruchomienie wymaga terminala, pomijam (uruchom ręcznie: Lab setup)." >&2
+        return 0
+    fi
+    bash "$SETUP_SH" || {
+        echo "Konfiguracja nie została ukończona. Spróbuj: Lab setup" >&2
+        return 1
+    }
+}
+
 lab_help() {
     cat << HELP
 Użycie: Lab <komenda>
@@ -137,15 +181,26 @@ Użycie: Lab <komenda>
   stop,  -s       zatrzymaj program
   update          sprawdź gałąź $MAIN_BRANCH, pobierz zmiany i uruchom Update.py
   update -b       to samo dla gałęzi $BETA_BRANCH
+  setup           konfiguracja startowa (powitanie, pakiety, Gere-Drive, prompt)
+  drive           zaktualizuj Gere-Drive (jeśli pobrane)
   help,  -h       ta pomoc
 HELP
 }
 
 main() {
+    # Pierwsze uruchomienie przy dowolnej komendzie (poza "setup", który robi to sam).
+    # Przy "start" nieukończona konfiguracja zatrzymuje start, przy reszcie nie blokuje.
+    case "${1:-}" in
+        setup) ;;
+        start|-up) first_run || return 1 ;;
+        *) first_run || true ;;
+    esac
     case "${1:-}" in
         start|-up) lab_start ;;
+        setup)     bash "$SETUP_SH" ;;
         stop|-s)   lab_stop ;;
         update)    lab_update "${2:-}" ;;
+        drive)     drive_sync ;;
         help|-h|"") lab_help ;;
         *) echo "Nieznana komenda: $1" >&2; lab_help; return 1 ;;
     esac

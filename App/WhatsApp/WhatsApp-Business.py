@@ -13,7 +13,11 @@ from urllib.parse import parse_qs, urlparse
 
 import yaml
 
-ROOT = Path(__file__).resolve().parent.parent
+APP = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(APP))
+from Messages import save_message
+
+ROOT = APP.parent
 LAUNCHER_CONFIG = ROOT / "User" / "Config.yml"
 WEB_CONFIG = ROOT / "User" / "Web-Config.yml"
 DEFAULT_INBOX = "Database/inbox"
@@ -74,19 +78,14 @@ def store_message(msg, inbox):
     if not text:
         log.warning("Wiadomość %s (typ %s) nie ma tekstu, pomijam", msg_id, msg.get("type"))
         return 0
-    target = inbox / f"{sender}__{msg_id}.txt"
-    if target.exists():
-        return 0
-    part = inbox / f".{target.name}.part"
-    part.write_text(text, encoding="utf-8")
-    os.replace(part, target)
     try:
-        sent_at = int(msg.get("timestamp"))
-        os.utime(target, (sent_at, sent_at))
-    except (TypeError, ValueError, OSError):
-        pass
-    log.info("Zapisano wiadomość od %s: %s", sender, target.name)
-    return 1
+        sent_ts = int(msg.get("timestamp"))
+    except (TypeError, ValueError):
+        sent_ts = None
+    saved = save_message(sender, msg_id, text, sent_ts)
+    if saved:
+        log.info("Zapisano wiadomość od %s: %s", sender, msg_id)
+    return saved
 
 
 def save_messages(payload, cfg):

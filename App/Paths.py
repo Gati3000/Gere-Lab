@@ -17,3 +17,12 @@ WEB_CONFIG = USER / "Web-Config.yml"
 INDEXES = USER / "Indexes.yml"
 MANIFEST = APP / "Manifest.py"
 UPDATE = APP / "Update.py"
+
+# Gere-Drive (drugie repo, obok Gere-Lab)
+DRIVE = ROOT.parent / "Gere-Drive"
+if not (DRIVE / ".git").is_dir():   # Gere-Drive niepobrane, lokalny zapas w Gere-Lab/Database
+    DRIVE = ROOT / "Database"
+DRIVE_MESSAGES = DRIVE / "Messeges"
+DRIVE_PARTS = DRIVE / "Parts"
+DRIVE_INVOICES = DRIVE / "Invoices"
+WHATSAPP_BUSINESS = WHATSAPP / "WhatsApp-Business.py"

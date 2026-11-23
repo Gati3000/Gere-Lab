@@ -63,6 +63,14 @@
         <label><span data-i18n="waSender"></span><input data-k="provider.sender_number" type="text" autocomplete="off" placeholder="+34"></label>
         </div>
       </div>
+      <h3 class="sectiontitle">Wiadomości</h3>
+      <div class="block">
+        <div class="blockhead"><h3>Messeges retention</h3></div>
+        <p>Ile dni wiadomości mają być wyświetlane i przechowywane. 0 = zawsze, nic nie jest usuwane. Wartość większa niż 0 trwale kasuje starsze pliki z Gere-Drive/Messeges.</p>
+        <div class="fields">
+        <label><span>Retention (dni)</span><input id="retentionDays" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></label>
+        </div>
+      </div>
     </div>
   </section>
 </main>
@@ -72,8 +80,13 @@ Common.init();
 const fields = [...document.querySelectorAll("[data-k]")];
 const note = document.getElementById("saveNote");
 const split = el => el.dataset.k.split(".");
+const retentionBox = document.getElementById("retentionDays");
+let savedDays = 0;
 function fill(data) {
   const wa = (data && data.whatsapp) || {};
+  const days = ((data && data.messages) || {}).retention_days;
+  retentionBox.value = days ?? 0;
+  savedDays = Number(days) || 0;
   fields.forEach(el => {
     const [s, k] = split(el), v = (wa[s] || {})[k];
     if (el.type === "checkbox") el.checked = v === true;
@@ -86,7 +99,7 @@ function collect() {
     const [s, k] = split(el);
     (out[s] = out[s] || {})[k] = el.type === "checkbox" ? el.checked : el.value.trim();
   });
-  return { whatsapp: out };
+  return { whatsapp: out, messages: { retention_days: retentionBox.value.trim() } };
 }
 async function load() {
   try {
@@ -96,6 +109,10 @@ async function load() {
   } catch (e) { note.textContent = Common.t("loadFailed"); console.error("config load failed:", e); }
 }
 document.getElementById("saveBtn").onclick = async () => {
+  const raw = retentionBox.value.trim();
+  if (!/^\d+$/.test(raw)) { note.textContent = "Retention: podaj liczbę dni (0 = bez usuwania)"; return; }
+  const days = parseInt(raw, 10);
+  if (days > 0 && days !== savedDays && !confirm("UWAGA: pliki wiadomości starsze niż " + days + " dni zostaną TRWALE usunięte z dysku (Gere-Drive/Messeges). Tego nie da się cofnąć. Kontynuować?")) return;
   try {
     const r = await fetch("/api/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(collect()) });
     if (!r.ok) throw new Error(r.status);

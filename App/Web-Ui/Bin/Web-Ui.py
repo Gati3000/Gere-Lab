@@ -5,6 +5,7 @@ from pathlib import Path
 # Paths.py is in App/ (three levels above this file)
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 from Paths import WEB_UI_UI, WEB_UI_BIN, LANGUAGE, WEB_CONFIG, INDEXES
+from Messages import prune, read_messages, retention_days
 
 PORT = 8080
 ROUTES = {"Ui": WEB_UI_UI, "Bin": WEB_UI_BIN, "Language": LANGUAGE}
@@ -129,9 +130,15 @@ class H(http.server.SimpleHTTPRequestHandler):
             return
         if urllib.parse.urlparse(self.path).path == "/api/config":
             try:
-                return self.send_json(200, {"whatsapp": whatsapp_view(read_config())})
+                cfg = read_config()
+                return self.send_json(200, {"whatsapp": whatsapp_view(cfg), "messages": {"retention_days": retention_days(cfg)}})
             except (OSError, yaml.YAMLError):
                 return self.send_error(500, "Config read failed")
+        if urllib.parse.urlparse(self.path).path == "/api/messages":
+            try:
+                return self.send_json(200, {"messages": read_messages(retention_days())})
+            except (OSError, yaml.YAMLError):
+                return self.send_error(500, "Messages read failed")
         if urllib.parse.urlparse(self.path).path == "/api/links":
             try:
                 return self.send_json(200, {"links": links_list(read_config(INDEXES))})
@@ -162,13 +169,22 @@ class H(http.server.SimpleHTTPRequestHandler):
         try:
             cfg = read_config()
             whatsapp_merge(cfg, data["whatsapp"])
+            messages = data.get("messages")
+            if isinstance(messages, dict) and "retention_days" in messages:
+                days = int(str(messages["retention_days"]).strip() or 0)
+                if days < 0:
+                    raise ValueError("retention_days < 0")
+                if not isinstance(cfg.get("messages"), dict):
+                    cfg["messages"] = {}
+                cfg["messages"]["retention_days"] = days
         except (ValueError, KeyError, TypeError, AttributeError, yaml.YAMLError):
             return self.send_error(400)
         try:
             write_config(cfg)
         except OSError:
             return self.send_error(500, "Config write failed")
-        self.send_json(200, {"whatsapp": whatsapp_view(cfg)})
+        removed = prune(retention_days(cfg))
+        self.send_json(200, {"whatsapp": whatsapp_view(cfg), "messages": {"retention_days": retention_days(cfg), "removed": len(removed)}})
 
     def save_link(self, data):
         try:

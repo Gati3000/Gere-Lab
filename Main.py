@@ -1,22 +1,24 @@
-import runpy, sys
-from pathlib import Path
-
-
-sys.path.insert(0, str(Path(__file__).resolve().parent / "App"))
-from Paths import WEB_UI_BIN
-
-
 import signal
 import subprocess
 import sys
 import threading
 from pathlib import Path
 
+import yaml
+
 sys.path.insert(0, str(Path(__file__).resolve().parent / "App"))
-from Paths import WEB_UI_BIN
+from Paths import WEB_UI_BIN, WHATSAPP_BUSINESS, WEB_CONFIG
 
 WEB_SERVE = WEB_UI_BIN / "Web-Ui.py"
-PORT = 8080 
+PORT = 8080
+
+
+def cloud_api_enabled():
+    try:
+        cfg = yaml.safe_load(WEB_CONFIG.read_text(encoding="utf-8")) or {}
+        return cfg["whatsapp"]["cloud_api"]["enabled"] is True
+    except (OSError, yaml.YAMLError, KeyError, TypeError):
+        return False
 
 
 def main():
@@ -30,21 +32,33 @@ def main():
     web = subprocess.Popen([sys.executable, str(WEB_SERVE)])
     print(f"Web UI started (PID {web.pid}): http://localhost:{PORT}", flush=True)
 
+    wa = None
+    if not cloud_api_enabled():
+        print("WhatsApp Cloud API wyłączone w Settings, webhook nie startuje.", flush=True)
+    elif not WHATSAPP_BUSINESS.is_file():
+        print(f"Brak pliku webhooka: {WHATSAPP_BUSINESS}", flush=True)
+    else:
+        wa = subprocess.Popen([sys.executable, str(WHATSAPP_BUSINESS)])
+        print(f"WhatsApp webhook started (PID {wa.pid})", flush=True)
+
     try:
-       
         while not stop.is_set():
             code = web.poll()
             if code is not None:
                 sys.exit(f"Web UI stopped unexpectedly (exit code {code})")
+            if wa is not None and wa.poll() is not None:
+                print(f"WhatsApp webhook zakończył się (kod {wa.returncode}), Web UI działa dalej.", flush=True)
+                wa = None
             stop.wait(1)
     finally:
-        if web.poll() is None:
-            web.terminate()
-            try:
-                web.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                web.kill()
-        print("Web UI stopped.", flush=True)
+        for name, proc in (("WhatsApp webhook", wa), ("Web UI", web)):
+            if proc is not None and proc.poll() is None:
+                proc.terminate()
+                try:
+                    proc.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+                print(f"{name} stopped.", flush=True)
 
 
 if __name__ == "__main__":
