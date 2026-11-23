@@ -20,7 +20,7 @@ UPDATE_PY="$APP_DIR/Update.py"
 DRIVE_DIR="$(dirname "$REPO_DIR")/Gere-Drive"
 DRIVE_URL="https://github.com/Gati3000/Gere-Drive.git"
 DRIVE_BRANCH="main"
-SETUP_SH="$MAINT_DIR/Setup.sh"
+SETUP_SH="$APP_DIR/Launcher/Launcher.py"
 SETUP_MARK="$HOME/.config/gere-lab/first-run-done"
 
 RUN_DIR="${TMPDIR:-/tmp}/gere-lab"
@@ -167,7 +167,7 @@ first_run() {
         echo "Pierwsze uruchomienie wymaga terminala, pomijam (uruchom ręcznie: Lab setup)." >&2
         return 0
     fi
-    bash "$SETUP_SH" || {
+    python3 "$SETUP_SH" || {
         echo "Konfiguracja nie została ukończona. Spróbuj: Lab setup" >&2
         return 1
     }
@@ -198,7 +198,7 @@ main() {
     esac
     case "${1:-}" in
         start|-up) lab_start ;;
-        setup)     bash "$SETUP_SH" ;;
+        setup)     python3 "$SETUP_SH" ;;
         stop|-s)   lab_stop ;;
         restart)   lab_stop; lab_start ;;
         update)    lab_update "${2:-}" ;;

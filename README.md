@@ -1,32 +1,46 @@
-# Hi Grzegosz
-Read this its important cuz there are instrucions how to install this tool and how to operate it
+# Gere-Lab
+Tools for Gere for operating his comapany
 
-### SETUP <-------------
+<!-- GERE-INSTALL -->
+## Installation
 
-Copy paste these 3 lines into the terminal (READ them before running, its safety):
+Create a Debian/Ubuntu container (or VM), open its terminal as root, then copy and paste the whole block below. It installs the basics, downloads Gere-Lab and starts the Launcher, which asks a few questions and sets everything up.
 
-    sudo apt update && sudo apt install -y git python3
-    git clone -b Main https://github.com/Gati3000/Gere-Lab.git
-    sudo python3 Gere-Lab/App/Launcher/Launcher.py
+```bash
+cd ~ && apt-get update && apt-get install -y git python3 \
+  && git clone -b Main https://github.com/Gati3000/Gere-Lab.git \
+  && python3 Gere-Lab/App/Launcher/Launcher.py
+```
 
-Then start the tool with: Lab start   (web panel: http://localhost:8080)
+Want the testing version? Use the Beta branch instead:
 
+```bash
+cd ~ && apt-get update && apt-get install -y git python3 \
+  && git clone -b Beta https://github.com/Gati3000/Gere-Lab.git \
+  && python3 Gere-Lab/App/Launcher/Launcher.py
+```
 
-# Terminal self-commands
-Lab -up # Starts programm
+When the Launcher finishes, start the program:
+
+```bash
 Lab start
+```
 
-Lab stop # turn off Tool
-Lab -s 
+## Commands
 
-Lab update # update 
-Lab update -b # Update to Beta
+| Command | What it does |
+|---|---|
+| `Lab start` (or `Lab -up`) | start Gere-Lab |
+| `Lab stop` (or `Lab -s`) | stop Gere-Lab |
+| `Lab restart` | stop and start again |
+| `Lab update` | check the Main branch and update |
+| `Lab update -b` | the same for the Beta branch |
+| `Lab setup` | run the first-time setup again |
+| `Lab drive` | update Gere-Drive (if installed) |
+| `Lab help` | show help |
 
-Lab restart # stop + start
+To run the Launcher again by hand:
 
-# Bugs n questions
-
-If you have problems put them in the google disk in folder "Bugs"
-if its something important conatct me 
-If you dont know how to use something or change ask fckin Ai iam a developer not and assistant. 
-Luv u <3
+```bash
+python3 ~/Gere-Lab/App/Launcher/Launcher.py
+```
