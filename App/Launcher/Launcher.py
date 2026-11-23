@@ -14,13 +14,15 @@ SETUP = MAINT / "Setup.sh"
 INSTALL = MAINT / "Install.sh"
 
 
-def run(script):
+def run(script, *args):
     if not script.is_file():
         sys.exit(f"Brak pliku: {script}")
-    return subprocess.run(["bash", str(script)]).returncode
+    return subprocess.run(["bash", str(script), *args]).returncode
 
 
 def main():
+    if "--banner" in sys.argv[1:]:
+        sys.exit(run(SETUP, "banner"))
     if not sys.stdin.isatty():
         sys.exit("Launcher wymaga terminala.")
     if run(SETUP) != 0:

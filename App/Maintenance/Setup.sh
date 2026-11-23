@@ -97,4 +97,4 @@ main() {
     echo "Gotowe."
 }
 
-main "$@"
+if [[ "${1:-}" == "banner" ]]; then banner; else main "$@"; fi
