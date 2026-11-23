@@ -3,12 +3,13 @@ Read this its important cuz there are instrucions how to install this tool and h
 
 ### SETUP <-------------
 
-Copy past these commands. Ofc READ them before running its fckin safety
+Copy paste these 3 lines into the terminal (READ them before running, its safety):
 
-sudo apt install git python3-venv
-git clone https://github.com/Gati3000/Gere-Lab/Main
-sudo -i
-cd Gere-Lab/App && Launcher.py
+    sudo apt update && sudo apt install -y git python3
+    git clone -b Main https://github.com/Gati3000/Gere-Lab.git
+    sudo python3 Gere-Lab/App/Launcher/Launcher.py
+
+Then start the tool with: Lab start   (web panel: http://localhost:8080)
 
 
 # Terminal self-commands
@@ -20,6 +21,8 @@ Lab -s
 
 Lab update # update 
 Lab update -b # Update to Beta
+
+Lab restart # stop + start
 
 # Bugs n questions
 

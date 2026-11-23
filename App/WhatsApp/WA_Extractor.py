@@ -6,6 +6,8 @@ EXTRACTOR_VERSION = "0.1"
 _TOKEN_17 = re.compile(r"(?<![A-Z0-9])[A-Z0-9]{17}(?![A-Z0-9])")
 _TOKEN_LONG = re.compile(r"(?<![A-Z0-9])[A-Z0-9]{14,20}(?![A-Z0-9])")
 _FORBIDDEN = set("IOQ")
+_ALNUM = re.compile(r"[A-Z0-9]+")
+_SEPARATOR = re.compile(r"[ \-.]{1,2}")   # between groups of a VIN: space, dash or dot
 
 _TRANSLIT = {str(d): d for d in range(10)}
 _TRANSLIT.update(
@@ -27,9 +29,30 @@ def _looks_like_vin(token):
     return sum(c.isdigit() for c in token) >= 4
 
 
+def _spaced_vins(upper):
+    """VIN-y zapisane w grupach ("WVW ZZZ 3CZ 9E 123456", "WVW-ZZZ-..."): 2-6 grup dających razem 17 znaków."""
+    tokens = list(_ALNUM.finditer(upper))
+    found = []
+    i = 0
+    while i < len(tokens):
+        joined, j = tokens[i].group(), i
+        while j + 1 < len(tokens) and len(joined) < 17:
+            if not _SEPARATOR.fullmatch(upper[tokens[j].end():tokens[j + 1].start()]):
+                break
+            j += 1
+            joined += tokens[j].group()
+        if j > i and len(joined) == 17 and _looks_like_vin(joined):
+            found.append(joined)
+            i = j + 1
+        else:
+            i += 1
+    return found
+
+
 def _clean_request(text, vin):
     if vin:
-        pattern = r"(?:\bvin\b\s*[:=\-]?\s*)?" + re.escape(vin)
+        # każdy znak VIN-u może być oddzielony spacją, kreską lub kropką
+        pattern = r"(?:\bvin\b\s*[:=\-]?\s*)?" + r"[ \-.]{0,2}".join(re.escape(c) for c in vin)
         text = re.sub(pattern, " ", text, flags=re.IGNORECASE)
     text = " ".join(text.split())
     return text.strip(" :;,.-")
@@ -47,7 +70,7 @@ def extract(text):
         "extractor_version": EXTRACTOR_VERSION,
     }
 
-    vins = [t for t in dict.fromkeys(_TOKEN_17.findall(upper)) if _looks_like_vin(t)]
+    vins = [t for t in dict.fromkeys(_TOKEN_17.findall(upper) + _spaced_vins(upper)) if _looks_like_vin(t)]
 
     if not vins:
         result["request_text"] = _clean_request(text, None)

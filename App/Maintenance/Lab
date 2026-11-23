@@ -5,7 +5,7 @@
 #   Lab update             aktualizuje z gałęzi główną i uruchamia Update.py
 #   Lab update -b          aktualizuje z gałęzi Beta
 
-MAIN_BRANCH="main"    # zmień na "Main", jeśli tak nazywa się Twoja gałąź
+MAIN_BRANCH="Main"
 BETA_BRANCH="Beta"
 
 # Rozwiązuje symlink, więc działa też po instalacji do /usr/local/bin
@@ -179,6 +179,7 @@ Użycie: Lab <komenda>
 
   start, -up      uruchom Main.py
   stop,  -s       zatrzymaj program
+  restart         zatrzymaj i uruchom ponownie
   update          sprawdź gałąź $MAIN_BRANCH, pobierz zmiany i uruchom Update.py
   update -b       to samo dla gałęzi $BETA_BRANCH
   setup           konfiguracja startowa (powitanie, pakiety, Gere-Drive, prompt)
@@ -199,6 +200,7 @@ main() {
         start|-up) lab_start ;;
         setup)     bash "$SETUP_SH" ;;
         stop|-s)   lab_stop ;;
+        restart)   lab_stop; lab_start ;;
         update)    lab_update "${2:-}" ;;
         drive)     drive_sync ;;
         help|-h|"") lab_help ;;
