@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="pl" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gere Lab - Instruction</title>
+<link rel="stylesheet" href="Themes.css">
+<style>
+/* Only for this page. Language is switched by Common.js (it sets <html lang>). */
+[data-l] { display: none; }
+html[lang="pl"] [data-l="pl"], html[lang="en"] [data-l="en"], html[lang="es"] [data-l="es"], [data-l].fb { display: revert; }
+.doc { max-width: 860px; width: 100%; margin: 0 auto; }
+.doc h3.grp { margin: 18px 0 2px; font-size: .9rem; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; }
+.doc h3.grp:first-child { margin-top: 0; }
+details { background: var(--panel2); border: 1px solid var(--border); border-radius: 10px; }
+summary { cursor: pointer; padding: 12px 14px; font-weight: 600; display: flex; justify-content: space-between; gap: 12px; list-style: none; }
+summary::-webkit-details-marker { display: none; }
+summary::after { content: "+"; color: var(--muted); font-weight: 400; }
+details[open] > summary::after { content: "\2013"; }
+details[open] > summary { border-bottom: 1px solid var(--border); }
+.body { padding: 4px 16px 14px; line-height: 1.6; }
+.body p { margin: 10px 0 0; }
+.body ul, .body ol { margin: 8px 0 0; padding-left: 22px; }
+.body li { margin: 4px 0; }
+.body code { background: var(--panel); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; font-size: .9em; }
+.body pre { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; overflow-x: auto; margin: 10px 0 0; }
+.body .warn { border-left: 4px solid var(--accent); background: var(--panel); border-radius: 6px; padding: 8px 12px; }
+.body .meta { color: var(--muted); font-size: .85rem; }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">Gere Lab</div>
+  <div class="tools">
+    <div class="row">
+      <button class="btn" id="themeBtn" type="button"></button>
+      <select id="langSel" aria-label="Language">
+        <option value="pl">Polski</option>
+        <option value="en">English</option>
+        <option value="es">Español</option>
+      </select>
+      <a class="btn" href="Home.html" data-i18n="home"></a>
+    </div>
+    <div class="row">
+      <a class="btn" href="Index.html" data-i18n="links"></a>
+      <a class="btn" href="Settings.html" data-i18n="settings"></a>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+  <section class="window">
+    <h2 data-i18n="instruction"></h2>
+    <div class="content">
+      <div class="doc" id="doc">
+
+<!--
+=====================================================================
+JAK DODAĆ WPIS / HOW TO ADD AN ENTRY / CÓMO AÑADIR UNA ENTRADA
+Skopiuj blok <details> poniżej i wklej go w wybranej grupie (pod <h3 class="grp">).
+Copy the <details> block below into any group (under an <h3 class="grp">).
+Copia el bloque <details> en cualquier grupo (bajo un <h3 class="grp">).
+
+<details>
+  <summary><span data-l="pl">Tytuł</span><span data-l="en">Title</span><span data-l="es">Título</span></summary>
+  <div class="body">
+    <div data-l="pl"><p>Tekst po polsku.</p></div>
+    <div data-l="en"><p>English text.</p></div>
+    <div data-l="es"><p>Texto en español.</p></div>
+  </div>
+</details>
+
+Możesz zostawić tylko jeden język - wpis pokaże się wtedy w tym jednym, w każdym języku strony.
+You may keep a single language - the entry then shows in it whatever language is selected.
+Nowa grupa = nowy <h3 class="grp"> z trzema <span data-l>.
+Pomocnicze klasy: <code>, <pre>, <ul>/<ol>, <p class="warn"> (ważne), <p class="meta"> (drobny druk).
+=====================================================================
+-->
+
+<!-- ================= START ================= -->
+<h3 class="grp"><span data-l="pl">Start</span><span data-l="en">Getting started</span><span data-l="es">Primeros pasos</span></h3>
+
+<details>
+  <summary><span data-l="pl">Uruchamianie i komendy Lab</span><span data-l="en">Starting the tool and Lab commands</span><span data-l="es">Iniciar la herramienta y comandos Lab</span></summary>
+  <div class="body">
+    <div data-l="pl">
+      <p>Program uruchamiasz w kontenerze komendą <code>Lab start</code> (lub <code>Lab -up</code>). Panel WWW działa na porcie <b>8080</b> i otwiera się od razu na ekranie Home: <code>http://ADRES-KONTENERA:8080</code>.</p>
+      <ul>
+        <li><code>Lab stop</code> (<code>Lab -s</code>) - zatrzymuje program, <code>Lab restart</code> - zatrzymuje i uruchamia od nowa.</li>
+        <li><code>Lab update</code> - sprawdza gałąź Main i aktualizuje, <code>Lab update -b</code> - to samo dla gałęzi Beta.</li>
+        <li><code>Lab setup</code> - ponownie uruchamia pierwszą konfigurację, <code>Lab drive</code> - aktualizuje Gere-Drive (jeśli jest zainstalowany).</li>
+        <li><code>Lab help</code> - pokazuje pomoc.</li>
+      </ul>
+      <p class="meta">Retencja i linki działają od razu po zapisaniu. Włączenie Cloud API oraz zmiana hosta lub portu webhooka wymagają <code>Lab restart</code>, bo webhook startuje razem z programem.</p>
+    </div>
+    <div data-l="en">
+      <p>Start the program inside the container with <code>Lab start</code> (or <code>Lab -up</code>). The web panel runs on port <b>8080</b> and opens straight on the Home screen: <code>http://CONTAINER-ADDRESS:8080</code>.</p>
+      <ul>
+        <li><code>Lab stop</code> (<code>Lab -s</code>) stops the program, <code>Lab restart</code> stops and starts it again.</li>
+        <li><code>Lab update</code> checks the Main branch and updates, <code>Lab update -b</code> does the same for the Beta branch.</li>
+        <li><code>Lab setup</code> runs the first-time setup again, <code>Lab drive</code> updates Gere-Drive (if installed).</li>
+        <li><code>Lab help</code> shows help.</li>
+      </ul>
+      <p class="meta">Retention and links take effect as soon as you save. Enabling Cloud API and changing the webhook host or port require <code>Lab restart</code>, because the webhook starts together with the program.</p>
+    </div>
+    <div data-l="es">
+      <p>Inicia el programa dentro del contenedor con <code>Lab start</code> (o <code>Lab -up</code>). El panel web funciona en el puerto <b>8080</b> y se abre directamente en la pantalla Home: <code>http://DIRECCION-DEL-CONTENEDOR:8080</code>.</p>
+      <ul>
+        <li><code>Lab stop</code> (<code>Lab -s</code>) detiene el programa, <code>Lab restart</code> lo detiene y lo inicia de nuevo.</li>
+        <li><code>Lab update</code> comprueba la rama Main y actualiza, <code>Lab update -b</code> hace lo mismo con la rama Beta.</li>
+        <li><code>Lab setup</code> repite la configuración inicial, <code>Lab drive</code> actualiza Gere-Drive (si está instalado).</li>
+        <li><code>Lab help</code> muestra la ayuda.</li>
+      </ul>
+      <p class="meta">La retención y los enlaces surten efecto al guardar. Activar Cloud API y cambiar el host o el puerto del webhook requieren <code>Lab restart</code>, porque el webhook arranca junto con el programa.</p>
+    </div>
+  </div>
+</details>
+
+<!-- ================= HOME ================= -->
+<h3 class="grp"><span data-l="pl">Ekran Home</span><span data-l="en">Home screen</span><span data-l="es">Pantalla Home</span></h3>
+
+<details>
+  <summary><span data-l="pl">Najnowsze wiadomości z WhatsApp</span><span data-l="en">Latest WhatsApp messages</span><span data-l="es">Últimos mensajes de WhatsApp</span></summary>
+  <div class="body">
+    <div data-l="pl">
+      <p>Lewe okno pokazuje wiadomości odebrane z WhatsAppa: nadawca, data i godzina oraz treść. Lista odświeża się sama co 10 sekund, nic nie trzeba klikać.</p>
+      <p>Widoczne są tylko wiadomości mieszczące się w ustawionej <b>retencji</b> (patrz grupa Ustawienia). Gdy okno jest puste, wiadomości jeszcze nie przyszły albo żadne źródło WhatsApp nie jest włączone.</p>
+    </div>
+    <div data-l="en">
+      <p>The left window shows messages received from WhatsApp: sender, date and time, and the text. The list refreshes by itself every 10 seconds, no clicking needed.</p>
+      <p>Only messages within the configured <b>retention</b> are shown (see the Settings group). If the window is empty, no messages have arrived yet or no WhatsApp source is enabled.</p>
+    </div>
+    <div data-l="es">
+      <p>La ventana izquierda muestra los mensajes recibidos de WhatsApp: remitente, fecha y hora, y el texto. La lista se actualiza sola cada 10 segundos, sin pulsar nada.</p>
+      <p>Solo se ven los mensajes dentro de la <b>retención</b> configurada (ver el grupo Ajustes). Si la ventana está vacía, aún no ha llegado ningún mensaje o no hay ninguna fuente de WhatsApp activada.</p>
+    </div>
+  </div>
+</details>
+
+<details>
+  <summary><span data-l="pl">Etykiety do akceptacji</span><span data-l="en">Labels awaiting approval</span><span data-l="es">Etiquetas pendientes de aprobación</span></summary>
+  <div class="body">
+    <div data-l="pl">
+      <p>Prawe okno zawiera etykiety wysyłkowe przygotowane na podstawie wiadomości: odbiorca, adres, część i przewoźnik. Sprawdzasz dane i wybierasz:</p>
+      <ul>
+        <li><b>Akceptuj</b> - etykieta jest oznaczona jako zaakceptowana.</li>
+        <li><b>Odrzuć</b> - otwiera okno, w którym opisujesz, co trzeba poprawić (np. zły adres, błędny numer części), i wysyłasz powód.</li>
+      </ul>
+      <p class="warn">Wersja Beta: etykiety na Home są na razie przykładowe, a decyzja Akceptuj/Odrzuć jeszcze nie zapisuje się na serwerze (po odświeżeniu strony znika).</p>
+    </div>
+    <div data-l="en">
+      <p>The right window holds shipping labels prepared from the messages: recipient, address, part and carrier. Check the data and choose:</p>
+      <ul>
+        <li><b>Accept</b> - the label is marked as accepted.</li>
+        <li><b>Reject</b> - opens a window where you describe what needs fixing (e.g. wrong address, wrong part number) and send the reason.</li>
+      </ul>
+      <p class="warn">Beta version: the labels on Home are sample data for now, and the Accept/Reject decision is not yet saved on the server (it disappears when the page is refreshed).</p>
+    </div>
+    <div data-l="es">
+      <p>La ventana derecha contiene las etiquetas de envío preparadas a partir de los mensajes: destinatario, dirección, pieza y transportista. Revisa los datos y elige:</p>
+      <ul>
+        <li><b>Aceptar</b> - la etiqueta se marca como aceptada.</li>
+        <li><b>Rechazar</b> - abre una ventana donde describes qué hay que corregir (p. ej. dirección errónea, número de pieza incorrecto) y envías el motivo.</li>
+      </ul>
+      <p class="warn">Versión Beta: las etiquetas de Home son de ejemplo por ahora, y la decisión Aceptar/Rechazar todavía no se guarda en el servidor (desaparece al recargar la página).</p>
+    </div>
+  </div>
+</details>
+
+<!-- ================= USTAWIENIA ================= -->
+<h3 class="grp"><span data-l="pl">Ustawienia</span><span data-l="en">Settings</span><span data-l="es">Ajustes</span></h3>
+
+<details>
+  <summary><span data-l="pl">WhatsApp: trzy sposoby połączenia</span><span data-l="en">WhatsApp: three ways to connect</span><span data-l="es">WhatsApp: tres formas de conectar</span></summary>
+  <div class="body">
+    <div data-l="pl">
+      <p>W Ustawieniach są trzy niezależne bloki. Wypełnij i zaznacz „Używaj” tylko przy tym, z którego korzystasz.</p>
+      <ul>
+        <li><b>Cloud API (Meta)</b> - oficjalne API WhatsApp Business. Meta wysyła wiadomości na webhook tego serwera. Pola: <i>Phone Number ID</i>, <i>Verify token</i>, <i>App secret</i>, <i>Access token</i> oraz <i>Host</i>, <i>Port</i> i <i>Ścieżka webhooka</i> (podpowiedzi: <code>0.0.0.0</code>, <code>8081</code>, <code>/webhook</code>), czyli adres, pod którym serwer nasłuchuje.</li>
+        <li><b>Bridge (WhatsApp Web)</b> - zewnętrzny most do zwykłego WhatsAppa, np. WAHA. Podajesz jego <i>Link (URL)</i> (np. <code>http://localhost:3000</code>), <i>Klucz API</i> i <i>Nazwę sesji</i> (domyślnie <code>default</code>).</li>
+        <li><b>Dostawca zewnętrzny</b> - pośrednik z oficjalnym API, np. Twilio lub 360dialog. Pola: <i>Account SID / ID klienta</i>, <i>Auth token / klucz API</i> i <i>Numer nadawcy</i>.</li>
+      </ul>
+      <p class="meta">Pola z hasłami (tokeny, sekrety, klucze) są ukryte jako ********. Jeśli ich nie ruszysz, zostają bez zmian po zapisie. Dane trafiają do pliku User/Web-Config.yml.</p>
+    </div>
+    <div data-l="en">
+      <p>Settings has three independent blocks. Fill in and tick “Use” only for the one you actually use.</p>
+      <ul>
+        <li><b>Cloud API (Meta)</b> - the official WhatsApp Business API. Meta sends messages to this server's webhook. Fields: <i>Phone Number ID</i>, <i>Verify token</i>, <i>App secret</i>, <i>Access token</i>, plus <i>Host</i>, <i>Port</i> and <i>Webhook path</i> (hints: <code>0.0.0.0</code>, <code>8081</code>, <code>/webhook</code>), i.e. where the server listens.</li>
+        <li><b>Bridge (WhatsApp Web)</b> - an external bridge to regular WhatsApp, e.g. WAHA. You enter its <i>Link (URL)</i> (e.g. <code>http://localhost:3000</code>), <i>API key</i> and <i>Session name</i> (default <code>default</code>).</li>
+        <li><b>External provider</b> - an intermediary with the official API, e.g. Twilio or 360dialog. Fields: <i>Account SID / client ID</i>, <i>Auth token / API key</i> and <i>Sender number</i>.</li>
+      </ul>
+      <p class="meta">Secret fields (tokens, secrets, keys) are hidden as ********. If you do not touch them they stay unchanged after saving. Data is stored in User/Web-Config.yml.</p>
+    </div>
+    <div data-l="es">
+      <p>Ajustes tiene tres bloques independientes. Rellena y marca «Usar» solo en el que utilices.</p>
+      <ul>
+        <li><b>Cloud API (Meta)</b> - la API oficial de WhatsApp Business. Meta envía los mensajes al webhook de este servidor. Campos: <i>Phone Number ID</i>, <i>Verify token</i>, <i>App secret</i>, <i>Access token</i>, además de <i>Host</i>, <i>Puerto</i> y <i>Ruta del webhook</i> (sugerencias: <code>0.0.0.0</code>, <code>8081</code>, <code>/webhook</code>), es decir, dónde escucha el servidor.</li>
+        <li><b>Bridge (WhatsApp Web)</b> - un puente externo al WhatsApp normal, p. ej. WAHA. Indicas su <i>Enlace (URL)</i> (p. ej. <code>http://localhost:3000</code>), <i>Clave API</i> y <i>Nombre de sesión</i> (por defecto <code>default</code>).</li>
+        <li><b>Proveedor externo</b> - un intermediario con la API oficial, p. ej. Twilio o 360dialog. Campos: <i>Account SID / ID de cliente</i>, <i>Auth token / clave API</i> y <i>Número remitente</i>.</li>
+      </ul>
+      <p class="meta">Los campos secretos (tokens, secretos, claves) se ocultan como ********. Si no los tocas, se mantienen sin cambios al guardar. Los datos se guardan en User/Web-Config.yml.</p>
+    </div>
+  </div>
+</details>
+
+<details>
+  <summary><span data-l="pl">Retencja wiadomości</span><span data-l="en">Message retention</span><span data-l="es">Retención de mensajes</span></summary>
+  <div class="body">
+    <div data-l="pl">
+      <p><b>Co to jest:</b> liczba dni, przez które wiadomości są wyświetlane i przechowywane.</p>
+      <p><b>Po co:</b> żeby baza wiadomości nie rosła bez końca, a Home pokazywał tylko świeże sprawy.</p>
+      <ul>
+        <li><code>0</code> - zawsze, nic nie jest usuwane (wartość domyślna).</li>
+        <li>Liczba większa niż 0 - starsze pliki wiadomości są <b>trwale kasowane</b> z folderu Gere-Drive/Messeges. Dzieje się to przy zapisaniu ustawień.</li>
+      </ul>
+      <p class="warn">Przy zmianie na wartość większą niż 0 panel prosi o potwierdzenie, bo usuniętych plików nie da się odzyskać. Wpisuj tylko całe liczby.</p>
+      <p class="meta">Dni liczone są kalendarzowo (czasem kontenera): <code>1</code> = tylko dzisiejsze, <code>7</code> = dzisiaj i 6 poprzednich dni. Retencja usuwa tylko pliki wiadomości, nie czyści bazy zapytań <code>Database/gere.db</code>. Home pokazuje maksymalnie 200 najnowszych wiadomości.</p>
+    </div>
+    <div data-l="en">
+      <p><b>What it is:</b> the number of days messages are displayed and kept.</p>
+      <p><b>Why:</b> so the message store does not grow forever and Home only shows recent matters.</p>
+      <ul>
+        <li><code>0</code> - always, nothing is deleted (the default).</li>
+        <li>A number greater than 0 - older message files are <b>permanently deleted</b> from the Gere-Drive/Messeges folder. This happens when you save the settings.</li>
+      </ul>
+      <p class="warn">When you change it to a value above 0 the panel asks for confirmation, because deleted files cannot be recovered. Enter whole numbers only.</p>
+      <p class="meta">Days are counted as calendar days (container clock): <code>1</code> = today only, <code>7</code> = today and the previous 6 days. Retention deletes message files only, it does not clear the inquiries database <code>Database/gere.db</code>. Home shows at most the 200 newest messages.</p>
+    </div>
+    <div data-l="es">
+      <p><b>Qué es:</b> el número de días que los mensajes se muestran y se conservan.</p>
+      <p><b>Para qué:</b> para que el almacén de mensajes no crezca sin límite y Home muestre solo lo reciente.</p>
+      <ul>
+        <li><code>0</code> - siempre, no se borra nada (valor por defecto).</li>
+        <li>Un número mayor que 0 - los archivos de mensajes más antiguos se <b>borran de forma permanente</b> de la carpeta Gere-Drive/Messeges. Ocurre al guardar los ajustes.</li>
+      </ul>
+      <p class="warn">Al cambiar a un valor mayor que 0 el panel pide confirmación, porque los archivos borrados no se pueden recuperar. Escribe solo números enteros.</p>
+      <p class="meta">Los días se cuentan como días naturales (reloj del contenedor): <code>1</code> = solo hoy, <code>7</code> = hoy y los 6 días anteriores. La retención borra solo los archivos de mensajes, no limpia la base de consultas <code>Database/gere.db</code>. Home muestra como máximo los 200 mensajes más recientes.</p>
+    </div>
+  </div>
+</details>
+
+<!-- ================= LINKI ================= -->
+<h3 class="grp"><span data-l="pl">Linki stron</span><span data-l="en">Page links</span><span data-l="es">Enlaces</span></h3>
+
+<details>
+  <summary><span data-l="pl">Dodawanie i otwieranie linków</span><span data-l="en">Adding and opening links</span><span data-l="es">Añadir y abrir enlaces</span></summary>
+  <div class="body">
+    <div data-l="pl">
+      <p>Ekran „Linki stron” to Twoja lista często używanych stron (np. panele przewoźników). Przycisk <b>+</b> dodaje nowy link: nazwa i adres są wymagane, opis jest opcjonalny. Przycisk <b>Otwórz</b> otwiera stronę w nowej karcie.</p>
+      <p class="meta">Adres musi zaczynać się od http:// lub https://. Maksymalnie 200 linków.</p>
+    </div>
+    <div data-l="en">
+      <p>The “Page links” screen is your list of frequently used sites (e.g. carrier portals). The <b>+</b> button adds a new link: name and address are required, description is optional. <b>Open</b> opens the site in a new tab.</p>
+      <p class="meta">The address must start with http:// or https://. Up to 200 links.</p>
+    </div>
+    <div data-l="es">
+      <p>La pantalla «Enlaces» es tu lista de sitios de uso frecuente (p. ej. portales de transportistas). El botón <b>+</b> añade un enlace: nombre y dirección son obligatorios, la descripción es opcional. <b>Abrir</b> abre el sitio en una pestaña nueva.</p>
+      <p class="meta">La dirección debe empezar por http:// o https://. Máximo 200 enlaces.</p>
+    </div>
+  </div>
+</details>
+
+<!-- ================= WYGLĄD ================= -->
+<h3 class="grp"><span data-l="pl">Wygląd</span><span data-l="en">Appearance</span><span data-l="es">Apariencia</span></h3>
+
+<details>
+  <summary><span data-l="pl">Motyw i język</span><span data-l="en">Theme and language</span><span data-l="es">Tema e idioma</span></summary>
+  <div class="body">
+    <div data-l="pl">
+      <p>W prawym górnym rogu zmieniasz motyw (jasny / ciemny) i język (polski, angielski, hiszpański). Wybór jest zapamiętywany w przeglądarce, osobno na każdym urządzeniu.</p>
+    </div>
+    <div data-l="en">
+      <p>In the top right corner you switch the theme (light / dark) and language (Polish, English, Spanish). The choice is remembered in the browser, separately on each device.</p>
+    </div>
+    <div data-l="es">
+      <p>En la esquina superior derecha cambias el tema (claro / oscuro) y el idioma (polaco, inglés, español). La elección se recuerda en el navegador, por separado en cada dispositivo.</p>
+    </div>
+  </div>
+</details>
+
+<!-- ============ NOWE GRUPY I WPISY DODAWAJ TUTAJ ============ -->
+
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="../Bin/Common.js"></script>
+<script>
+// Entry written in one language only: show it in every language
+function fallback() {
+  document.querySelectorAll(".body").forEach(b => {
+    const parts = [...b.children].filter(c => c.dataset.l);
+    const has = parts.some(c => c.dataset.l === document.documentElement.lang);
+    parts.forEach(c => c.classList.toggle("fb", !has));
+  });
+}
+document.addEventListener("uichange", fallback);
+Common.init();
+</script>
+</body>
+</html>

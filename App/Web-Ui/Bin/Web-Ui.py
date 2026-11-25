@@ -1,4 +1,4 @@
-import http.server, socketserver, sys, posixpath, urllib.parse, json, os, yaml
+import http.server, socketserver, sys, posixpath, urllib.parse, urllib.request, urllib.error, json, os, yaml
 from pathlib import Path
 
 
@@ -12,6 +12,7 @@ ROUTES = {"Ui": WEB_UI_UI, "Bin": WEB_UI_BIN, "Language": LANGUAGE}
 MAX_BODY = 64 * 1024
 MAX_LINKS = 200
 MASK = "********"
+TEST_TIMEOUT = 5
 # section -> field -> (type, secret). Only these fields can be saved from Settings
 WHATSAPP_FIELDS = {
     "cloud_api": {
@@ -79,6 +80,43 @@ def whatsapp_merge(cfg, incoming):
                 target.pop(name, None)
                 continue
             target[name] = kind(value)
+
+
+TEST_REQUIRED = {
+    "cloud_api": ("phone_number_id", "access_token"),
+    "bridge": ("url",),
+    "provider": ("account_id", "auth_token", "sender_number"),
+}
+
+
+def http_check(url, headers):
+    req = urllib.request.Request(url, headers=headers)
+    try:
+        with urllib.request.urlopen(req, timeout=TEST_TIMEOUT):
+            return "waTestOk"
+    except urllib.error.HTTPError as e:
+        return "waTestBadKey" if e.code in (400, 401, 403) else "waTestFail"
+    except (urllib.error.URLError, OSError, ValueError):
+        return "waTestNoConn"
+
+
+def whatsapp_test(cfg, section):
+    saved = cfg.get("whatsapp") if isinstance(cfg.get("whatsapp"), dict) else {}
+    values = saved.get(section) if isinstance(saved.get(section), dict) else {}
+    if any(not values.get(name) for name in TEST_REQUIRED[section]):
+        return "waTestMissing"
+    if section == "cloud_api":
+        url = "https://graph.facebook.com/" + urllib.parse.quote(str(values["phone_number_id"]), safe="")
+        return http_check(url, {"Authorization": "Bearer " + str(values["access_token"])})
+    if section == "bridge":
+        url = str(values["url"]).strip()
+        # only web links, so a test can never read a local file
+        if urllib.parse.urlparse(url).scheme not in ("http", "https"):
+            return "waTestMissing"
+        headers = {"X-Api-Key": str(values["api_key"])} if values.get("api_key") else {}
+        return http_check(url, headers)
+    # TODO provider: real request once the provider is chosen, for now only checks that the fields are filled
+    return "waTestFilled"
 
 
 def clean_link(data):
@@ -203,15 +241,27 @@ class H(http.server.SimpleHTTPRequestHandler):
             return self.send_error(500, "Links write failed")
         self.send_json(200, {"links": links})
 
+    def run_test(self, data):
+        section = data.get("section") if isinstance(data, dict) else None
+        if section not in TEST_REQUIRED:
+            return self.send_error(400)
+        try:
+            code = whatsapp_test(read_config(), section)
+        except (OSError, yaml.YAMLError):
+            return self.send_error(500, "Config read failed")
+        self.send_json(200, {"code": code})
+
     def do_POST(self):
         path = urllib.parse.urlparse(self.path).path
-        if path not in ("/api/config", "/api/links"):
+        if path not in ("/api/config", "/api/links", "/api/test"):
             return self.send_error(404, "Not found")
         data = self.read_json()
         if data is None:
             return
         if path == "/api/links":
             return self.save_link(data)
+        if path == "/api/test":
+            return self.run_test(data)
         self.save_config(data)
 
     def end_headers(self):

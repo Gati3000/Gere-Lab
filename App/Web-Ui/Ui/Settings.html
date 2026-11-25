@@ -8,7 +8,7 @@
 </head>
 <body>
 <header class="topbar">
-  <div class="brand">Gere Lab</div>
+  <a class="brand" href="Home.html">Gere Lab</a>
   <div class="tools">
     <div class="row">
       <a class="btn" href="Home.html" data-i18n="back"></a>
@@ -38,6 +38,7 @@
         <label><span data-i18n="waPort"></span><input data-k="cloud_api.port" type="text" autocomplete="off" placeholder="8081"></label>
         <label><span data-i18n="waPath"></span><input data-k="cloud_api.path" type="text" autocomplete="off" placeholder="/webhook"></label>
         </div>
+        <div class="testrow"><button class="btn" type="button" data-test="cloud_api" data-i18n="waTest"></button><span class="note" data-result="cloud_api"></span></div>
       </div>
       <div class="block">
         <div class="blockhead">
@@ -50,6 +51,7 @@
         <label><span data-i18n="waApiKey"></span><input data-k="bridge.api_key" type="password" autocomplete="off"></label>
         <label><span data-i18n="waSession"></span><input data-k="bridge.session" type="text" autocomplete="off" placeholder="default"></label>
         </div>
+        <div class="testrow"><button class="btn" type="button" data-test="bridge" data-i18n="waTest"></button><span class="note" data-result="bridge"></span></div>
       </div>
       <div class="block">
         <div class="blockhead">
@@ -62,6 +64,7 @@
         <label><span data-i18n="waAuthToken"></span><input data-k="provider.auth_token" type="password" autocomplete="off"></label>
         <label><span data-i18n="waSender"></span><input data-k="provider.sender_number" type="text" autocomplete="off" placeholder="+34"></label>
         </div>
+        <div class="testrow"><button class="btn" type="button" data-test="provider" data-i18n="waTest"></button><span class="note" data-result="provider"></span></div>
       </div>
       <h3 class="sectiontitle">Wiadomości</h3>
       <div class="block">
@@ -120,6 +123,15 @@ document.getElementById("saveBtn").onclick = async () => {
     note.textContent = Common.t("saved");
   } catch (e) { note.textContent = Common.t("saveFailed"); console.error("config save failed:", e); }
 };
+document.querySelectorAll("[data-test]").forEach(btn => btn.onclick = async () => {
+  const out = document.querySelector('[data-result="' + btn.dataset.test + '"]');
+  out.textContent = Common.t("waTesting");
+  try {
+    const r = await fetch("/api/test", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ section: btn.dataset.test }) });
+    if (!r.ok) throw new Error(r.status);
+    out.textContent = Common.t((await r.json()).code);
+  } catch (e) { out.textContent = Common.t("waTestFail"); console.error("test failed:", e); }
+});
 load();
 </script>
 </body>
