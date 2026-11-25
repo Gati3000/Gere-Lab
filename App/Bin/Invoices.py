@@ -18,14 +18,17 @@ from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 import sys
 from pathlib import Path
 
+import yaml
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import Clients
-from Paths import DRIVE_INVOICES, DRIVE_INVOICES_REVIEW, DRIVE_INVOICES_ACCEPTED, DRIVE_INVOICES_REJECTED
+from Paths import DRIVE_INVOICES, DRIVE_INVOICES_REVIEW, DRIVE_INVOICES_ACCEPTED, DRIVE_INVOICES_REJECTED, WEB_CONFIG
 
 ID = re.compile(r"^INV-\d{6}$")
 STATUSES = ("pending", "approved", "rejected")
 FOLDERS = {"pending": DRIVE_INVOICES_REVIEW, "approved": DRIVE_INVOICES_ACCEPTED, "rejected": DRIVE_INVOICES_REJECTED}
 CURRENCY = "EUR"
+DELAY_MINUTES = 5
 MAX_ITEMS = 50
 CENT = Decimal("0.01")
 LOCK = threading.Lock()
@@ -37,6 +40,18 @@ class NotFound(Exception):
 
 class AlreadyDecided(Exception):
     pass
+
+
+def delay_minutes(cfg=None):
+    if cfg is None:
+        try:
+            cfg = yaml.safe_load(WEB_CONFIG.read_text(encoding="utf-8")) or {}
+        except (OSError, yaml.YAMLError):
+            return DELAY_MINUTES
+    try:
+        return max(0, int((cfg.get("invoices") or {}).get("delay_minutes", DELAY_MINUTES)))
+    except (TypeError, ValueError, AttributeError):
+        return DELAY_MINUTES
 
 
 def _now():
@@ -201,6 +216,14 @@ def decide(invoice_id, status, reason=""):
         target.parent.mkdir(parents=True, exist_ok=True)
         _write(target, invoice)
         path.unlink()
+        if status == "rejected" and invoice["reject_reason"]:
+            try:
+                items = "; ".join(f"{i['qty']} x {i['name']}" for i in invoice["items"])
+                target.with_suffix(".txt").write_text(
+                    f"{invoice_id}\nRejected: {invoice['decided']}\nItems: {items}\nNote: {invoice['note']}\n\nReason:\n{invoice['reject_reason']}\n",
+                    encoding="utf-8")
+            except OSError as exc:
+                print(f"Notatka {invoice_id} nie powstała: {exc}", file=sys.stderr, flush=True)
         if status == "approved":
             try:
                 import InvoicePdf

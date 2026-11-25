@@ -1,4 +1,4 @@
-import http.server, socketserver, sys, posixpath, urllib.parse, urllib.request, urllib.error, json, os, yaml
+import http.server, socketserver, sys, posixpath, urllib.parse, urllib.request, urllib.error, json, os, yaml, signal
 from pathlib import Path
 
 
@@ -37,6 +37,11 @@ def write_config(cfg, path=WEB_CONFIG):
     with os.fdopen(fd, "w", encoding="utf-8") as f:
         yaml.safe_dump(cfg, f, allow_unicode=True, sort_keys=False)
     os.replace(part, path)
+
+
+def whatsapp_snapshot(cfg):
+    saved = cfg.get("whatsapp") if isinstance(cfg.get("whatsapp"), dict) else {}
+    return json.dumps({s: v for s, v in saved.items() if v}, sort_keys=True)
 
 
 def whatsapp_view(cfg):
@@ -173,7 +178,7 @@ class H(http.server.SimpleHTTPRequestHandler):
         if urllib.parse.urlparse(self.path).path == "/api/config":
             try:
                 cfg = read_config()
-                return self.send_json(200, {"whatsapp": whatsapp_view(cfg), "messages": {"retention_days": retention_days(cfg)}})
+                return self.send_json(200, {"whatsapp": whatsapp_view(cfg), "messages": {"retention_days": retention_days(cfg)}, "invoices": {"delay_minutes": Invoices.delay_minutes(cfg)}})
             except (OSError, yaml.YAMLError):
                 return self.send_error(500, "Config read failed")
         if urllib.parse.urlparse(self.path).path == "/api/messages":
@@ -218,7 +223,9 @@ class H(http.server.SimpleHTTPRequestHandler):
     def save_config(self, data):
         try:
             cfg = read_config()
+            before = whatsapp_snapshot(cfg)
             whatsapp_merge(cfg, data["whatsapp"])
+            restart = whatsapp_snapshot(cfg) != before
             messages = data.get("messages")
             if isinstance(messages, dict) and "retention_days" in messages:
                 days = int(str(messages["retention_days"]).strip() or 0)
@@ -227,6 +234,14 @@ class H(http.server.SimpleHTTPRequestHandler):
                 if not isinstance(cfg.get("messages"), dict):
                     cfg["messages"] = {}
                 cfg["messages"]["retention_days"] = days
+            invoices = data.get("invoices")
+            if isinstance(invoices, dict) and "delay_minutes" in invoices:
+                minutes = int(str(invoices["delay_minutes"]).strip() or 0)
+                if not 0 <= minutes <= 1440:
+                    raise ValueError("delay_minutes out of range")
+                if not isinstance(cfg.get("invoices"), dict):
+                    cfg["invoices"] = {}
+                cfg["invoices"]["delay_minutes"] = minutes
         except (ValueError, KeyError, TypeError, AttributeError, yaml.YAMLError):
             return self.send_error(400)
         try:
@@ -234,7 +249,7 @@ class H(http.server.SimpleHTTPRequestHandler):
         except OSError:
             return self.send_error(500, "Config write failed")
         removed = prune(retention_days(cfg))
-        self.send_json(200, {"whatsapp": whatsapp_view(cfg), "messages": {"retention_days": retention_days(cfg), "removed": len(removed)}})
+        self.send_json(200, {"whatsapp": whatsapp_view(cfg), "messages": {"retention_days": retention_days(cfg), "removed": len(removed)}, "invoices": {"delay_minutes": Invoices.delay_minutes(cfg)}, "restart": restart})
 
     def save_link(self, data):
         try:
@@ -289,14 +304,23 @@ class H(http.server.SimpleHTTPRequestHandler):
             return self.send_error(500, "Invoice write failed")
         self.send_json(200, {"invoice": invoice})
 
+    def restart_webhook(self):
+        try:
+            os.kill(int(os.environ["GERE_MAIN_PID"]), signal.SIGUSR1)
+        except (KeyError, ValueError, OSError):
+            return self.send_error(503, "Restart failed")
+        self.send_json(200, {"ok": True})
+
     def do_POST(self):
         path = urllib.parse.urlparse(self.path).path
         route = invoice_route(path)
-        if path not in ("/api/config", "/api/links", "/api/test", "/api/invoices") and route is None:
+        if path not in ("/api/config", "/api/links", "/api/test", "/api/invoices", "/api/restart") and route is None:
             return self.send_error(404, "Not found")
         data = self.read_json()
         if data is None:
             return
+        if path == "/api/restart":
+            return self.restart_webhook()
         if path == "/api/invoices":
             return self.create_invoice(data)
         if route is not None:

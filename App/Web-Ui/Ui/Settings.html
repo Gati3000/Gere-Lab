@@ -74,9 +74,28 @@
         <label><span>Retention (dni)</span><input id="retentionDays" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></label>
         </div>
       </div>
+      <h3 class="sectiontitle" data-i18n="invTitle"></h3>
+      <div class="block">
+        <div class="blockhead"><h3 data-i18n="invDelayTitle"></h3></div>
+        <p data-i18n="invDelayHint"></p>
+        <div class="fields">
+        <label><span data-i18n="invDelayLabel"></span><input id="delayMinutes" type="text" inputmode="numeric" autocomplete="off" placeholder="5"></label>
+        </div>
+      </div>
     </div>
   </section>
 </main>
+
+<div class="modal-bg" id="restartModal">
+  <div class="modal">
+    <h3 data-i18n="restartTitle"></h3>
+    <p data-i18n="restartHint"></p>
+    <div class="actions">
+      <button class="btn ghost" id="restartLater" type="button" data-i18n="restartLater"></button>
+      <button class="btn primary" id="restartNow" type="button" data-i18n="restartNow"></button>
+    </div>
+  </div>
+</div>
 <script src="../Bin/Common.js"></script>
 <script>
 Common.init();
@@ -84,12 +103,15 @@ const fields = [...document.querySelectorAll("[data-k]")];
 const note = document.getElementById("saveNote");
 const split = el => el.dataset.k.split(".");
 const retentionBox = document.getElementById("retentionDays");
+const delayBox = document.getElementById("delayMinutes");
+const restartModal = document.getElementById("restartModal");
 let savedDays = 0;
 function fill(data) {
   const wa = (data && data.whatsapp) || {};
   const days = ((data && data.messages) || {}).retention_days;
   retentionBox.value = days ?? 0;
   savedDays = Number(days) || 0;
+  delayBox.value = ((data && data.invoices) || {}).delay_minutes ?? 5;
   fields.forEach(el => {
     const [s, k] = split(el), v = (wa[s] || {})[k];
     if (el.type === "checkbox") el.checked = v === true;
@@ -102,7 +124,7 @@ function collect() {
     const [s, k] = split(el);
     (out[s] = out[s] || {})[k] = el.type === "checkbox" ? el.checked : el.value.trim();
   });
-  return { whatsapp: out, messages: { retention_days: retentionBox.value.trim() } };
+  return { whatsapp: out, messages: { retention_days: retentionBox.value.trim() }, invoices: { delay_minutes: delayBox.value.trim() } };
 }
 async function load() {
   try {
@@ -114,14 +136,26 @@ async function load() {
 document.getElementById("saveBtn").onclick = async () => {
   const raw = retentionBox.value.trim();
   if (!/^\d+$/.test(raw)) { note.textContent = "Retention: podaj liczbę dni (0 = bez usuwania)"; return; }
+  if (!/^\d+$/.test(delayBox.value.trim()) || Number(delayBox.value) > 1440) { note.textContent = Common.t("invDelayBad"); return; }
   const days = parseInt(raw, 10);
   if (days > 0 && days !== savedDays && !confirm("UWAGA: pliki wiadomości starsze niż " + days + " dni zostaną TRWALE usunięte z dysku (Gere-Drive/Messeges). Tego nie da się cofnąć. Kontynuować?")) return;
   try {
     const r = await fetch("/api/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(collect()) });
     if (!r.ok) throw new Error(r.status);
-    fill(await r.json());
+    const saved = await r.json();
+    fill(saved);
     note.textContent = Common.t("saved");
+    if (saved.restart) restartModal.classList.add("open");
   } catch (e) { note.textContent = Common.t("saveFailed"); console.error("config save failed:", e); }
+};
+document.getElementById("restartLater").onclick = () => restartModal.classList.remove("open");
+document.getElementById("restartNow").onclick = async () => {
+  try {
+    const r = await fetch("/api/restart", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+    if (!r.ok) throw new Error(r.status);
+    note.textContent = Common.t("restartDone");
+  } catch (e) { note.textContent = Common.t("restartFailed"); console.error("restart failed:", e); }
+  restartModal.classList.remove("open");
 };
 document.querySelectorAll("[data-test]").forEach(btn => btn.onclick = async () => {
   const out = document.querySelector('[data-result="' + btn.dataset.test + '"]');
