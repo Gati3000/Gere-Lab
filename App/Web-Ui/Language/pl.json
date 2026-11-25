@@ -97,5 +97,13 @@
  "cod": "Pobranie",
  "labelFrom": "Od",
  "labelTo": "Do",
- "printHint": "W oknie druku wybierz skalę 100% i brak marginesów."
+ "printHint": "W oknie druku wybierz skalę 100% i brak marginesów.",
+ "invoices": "Faktury do akceptacji",
+ "noInvoices": "Brak faktur do akceptacji.",
+ "invoiceClient": "Klient",
+ "invoiceItems": "Pozycje",
+ "invoiceTotal": "Razem",
+ "invoiceError": "Nie udało się pobrać lub zapisać faktur. Spróbuj ponownie.",
+ "invRejectTitle": "Odrzucić fakturę?",
+ "invRejectHint": "Powód jest opcjonalny i zapisze się razem z fakturą."
 }

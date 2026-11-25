@@ -6,6 +6,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 from Paths import WEB_UI_UI, WEB_UI_BIN, LANGUAGE, WEB_CONFIG, INDEXES
 from Messages import prune, read_messages, retention_days
+import Invoices
 
 PORT = 8080
 ROUTES = {"Ui": WEB_UI_UI, "Bin": WEB_UI_BIN, "Language": LANGUAGE}
@@ -140,6 +141,14 @@ def links_list(cfg):
     return out
 
 
+def invoice_route(path):
+    """'/api/invoices/INV-000001/approve' -> ('INV-000001', 'approve'); inaczej None."""
+    parts = path.strip("/").split("/")
+    if len(parts) == 4 and parts[:2] == ["api", "invoices"] and parts[3] in ("approve", "reject"):
+        return parts[2], parts[3]
+    return None
+
+
 class H(http.server.SimpleHTTPRequestHandler):
     def translate_path(self, path):
         path = posixpath.normpath(urllib.parse.unquote(urllib.parse.urlparse(path).path))
@@ -182,6 +191,15 @@ class H(http.server.SimpleHTTPRequestHandler):
                 return self.send_json(200, {"links": links_list(read_config(INDEXES))})
             except (OSError, yaml.YAMLError):
                 return self.send_error(500, "Links read failed")
+        if urllib.parse.urlparse(self.path).path == "/api/invoices":
+            query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            status = (query.get("status") or [None])[0]
+            if status is not None and status not in Invoices.STATUSES:
+                return self.send_error(400)
+            try:
+                return self.send_json(200, {"invoices": Invoices.list_invoices(status)})
+            except OSError:
+                return self.send_error(500, "Invoices read failed")
         super().do_GET()
 
     def read_json(self):
@@ -251,13 +269,44 @@ class H(http.server.SimpleHTTPRequestHandler):
             return self.send_error(500, "Config read failed")
         self.send_json(200, {"code": code})
 
+    def create_invoice(self, data):
+        try:
+            invoice = Invoices.create_invoice(
+                data["items"], client_id=data.get("client_id"), contact=data.get("contact", ""),
+                inquiry_id=data.get("inquiry_id"), note=str(data.get("note", "")).strip()[:500], source="api")
+        except (ValueError, KeyError, TypeError, AttributeError):
+            return self.send_error(400)
+        except OSError:
+            return self.send_error(500, "Invoice write failed")
+        self.send_json(201, {"invoice": invoice})
+
+    def decide_invoice(self, invoice_id, action, data):
+        status = "approved" if action == "approve" else "rejected"
+        reason = str(data.get("reason", "")).strip()[:500] if isinstance(data, dict) else ""
+        try:
+            invoice = Invoices.decide(invoice_id, status, reason)
+        except ValueError:
+            return self.send_error(400)
+        except Invoices.NotFound:
+            return self.send_error(404, "No such invoice")
+        except Invoices.AlreadyDecided:
+            return self.send_error(409, "Already decided")
+        except OSError:
+            return self.send_error(500, "Invoice write failed")
+        self.send_json(200, {"invoice": invoice})
+
     def do_POST(self):
         path = urllib.parse.urlparse(self.path).path
-        if path not in ("/api/config", "/api/links", "/api/test"):
+        route = invoice_route(path)
+        if path not in ("/api/config", "/api/links", "/api/test", "/api/invoices") and route is None:
             return self.send_error(404, "Not found")
         data = self.read_json()
         if data is None:
             return
+        if path == "/api/invoices":
+            return self.create_invoice(data)
+        if route is not None:
+            return self.decide_invoice(route[0], route[1], data)
         if path == "/api/links":
             return self.save_link(data)
         if path == "/api/test":

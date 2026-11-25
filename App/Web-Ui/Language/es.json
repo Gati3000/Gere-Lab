@@ -97,5 +97,13 @@
  "cod": "Contrareembolso",
  "labelFrom": "De",
  "labelTo": "Para",
- "printHint": "En el diálogo de impresión elige escala 100 % y sin márgenes."
+ "printHint": "En el diálogo de impresión elige escala 100 % y sin márgenes.",
+ "invoices": "Facturas por aprobar",
+ "noInvoices": "No hay facturas pendientes de aprobación.",
+ "invoiceClient": "Cliente",
+ "invoiceItems": "Artículos",
+ "invoiceTotal": "Total",
+ "invoiceError": "No se pudieron cargar o guardar las facturas. Inténtalo de nuevo.",
+ "invRejectTitle": "¿Rechazar la factura?",
+ "invRejectHint": "El motivo es opcional y se guarda con la factura."
 }

@@ -97,5 +97,13 @@
  "cod": "Cash on delivery",
  "labelFrom": "From",
  "labelTo": "To",
- "printHint": "In the print dialog choose 100% scale and no margins."
+ "printHint": "In the print dialog choose 100% scale and no margins.",
+ "invoices": "Invoices to approve",
+ "noInvoices": "No invoices waiting for approval.",
+ "invoiceClient": "Client",
+ "invoiceItems": "Items",
+ "invoiceTotal": "Total",
+ "invoiceError": "Could not load or save invoices. Try again.",
+ "invRejectTitle": "Reject this invoice?",
+ "invRejectHint": "The reason is optional and is saved with the invoice."
 }
