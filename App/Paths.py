@@ -23,6 +23,7 @@ DRIVE = ROOT.parent / "Gere-Drive"
 if not (DRIVE / ".git").is_dir():   # Gere-Drive niepobrane, lokalny zapas w Gere-Lab/Database
     DRIVE = ROOT / "Database"
 DRIVE_MESSAGES = DRIVE / "Messeges"
+DRIVE_PHOTOS = DRIVE_MESSAGES / "Photos"
 DRIVE_CLIENTS = DRIVE / "Clients"
 DRIVE_PARTS = DRIVE / "Parts"
 DRIVE_INVOICES = DRIVE / "Invoices"

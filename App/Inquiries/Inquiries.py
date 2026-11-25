@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS inquiries (
     vin_valid INTEGER NOT NULL DEFAULT 0,
     request_text TEXT NOT NULL DEFAULT '',
     needs_human INTEGER NOT NULL DEFAULT 1,
+    photos TEXT NOT NULL DEFAULT '[]',
     reason TEXT,
     extractor_version TEXT,
     status TEXT NOT NULL DEFAULT 'new',
@@ -46,6 +47,7 @@ CREATE TABLE IF NOT EXISTS messages (
     source_id TEXT NOT NULL UNIQUE,
     contact TEXT,
     text TEXT NOT NULL,
+    photos TEXT NOT NULL DEFAULT '[]',
     received_at TEXT NOT NULL,
     created_at TEXT NOT NULL,
     inquiry_id INTEGER REFERENCES inquiries(id)
@@ -78,6 +80,11 @@ def open_db(path):
     columns = {r["name"] for r in conn.execute("PRAGMA table_info(messages)")}
     if "inquiry_id" not in columns:
         sys.exit("Stara struktura bazy. Usuń Database/gere.db* i uruchom ponownie.")
+    for table in ("messages", "inquiries"):
+        have = {r["name"] for r in conn.execute(f"PRAGMA table_info({table})")}
+        if "photos" not in have:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN photos TEXT NOT NULL DEFAULT '[]'")
+    conn.commit()
     return conn
 
 
@@ -97,7 +104,7 @@ def read_inbox(inbox, settle_seconds=2):
             continue
         contact = path.stem.split("__", 1)[0] if "__" in path.stem else None
         when = datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc)
-        found.append((path.name, contact, text, when.isoformat(timespec="seconds")))
+        found.append((path.name, contact, text, when.isoformat(timespec="seconds"), []))
     return found
 
 
@@ -117,11 +124,12 @@ def read_drive_messages():
                 sender = str(m["from"])
                 msg_id = str(m["id"])
                 text = str(m["text"]).strip()
+                photos = [str(x) for x in (m.get("photos") or [])]
                 when = datetime.fromisoformat(m["time"]).astimezone(timezone.utc)
             except (ValueError, KeyError, TypeError):
                 continue
-            if text:
-                found.append((f"{sender}__{msg_id}.txt", sender, text, when.isoformat(timespec="seconds")))
+            if text or photos:
+                found.append((f"{sender}__{msg_id}.txt", sender, text, when.isoformat(timespec="seconds"), photos))
     return found
 
 
@@ -139,10 +147,11 @@ def open_inquiry(conn, contact, received_at, window_minutes):
 
 def run_once(cfg, conn):
     new = 0
-    for source_id, contact, text, received_at in read_inbox(cfg["inbox_dir"]) + read_drive_messages():
+    for source_id, contact, text, received_at, photos in read_inbox(cfg["inbox_dir"]) + read_drive_messages():
         cur = conn.execute(
-            "INSERT OR IGNORE INTO messages (source_id, contact, text, received_at, created_at) "
-            "VALUES (?, ?, ?, ?, ?)", (source_id, contact, text, received_at, now()))
+            "INSERT OR IGNORE INTO messages (source_id, contact, text, photos, received_at, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (source_id, contact, text, json.dumps(photos, ensure_ascii=False), received_at, now()))
         new += cur.rowcount
         if cur.rowcount:
             log.info("Nowa wiadomość: %s", source_id)
@@ -166,13 +175,23 @@ def run_once(cfg, conn):
 
     for inquiry_id in touched:
         rows = conn.execute(
-            "SELECT text FROM messages WHERE inquiry_id = ? ORDER BY received_at, id", (inquiry_id,))
+            "SELECT text, photos FROM messages WHERE inquiry_id = ? ORDER BY received_at, id",
+            (inquiry_id,)).fetchall()
         r = extract("\n".join(row["text"] for row in rows))
+        photos = [p for row in rows for p in json.loads(row["photos"] or "[]")]
+        status = "new"
+        if photos and r["vin"] is None:
+            r["needs_human"] = False
+            r["reason"] = "zdjęcia do odczytu"
+            status = "photos"
         conn.execute(
             "UPDATE inquiries SET vin = ?, vin_valid = ?, request_text = ?, needs_human = ?, "
-            "reason = ?, extractor_version = ?, updated_at = ? WHERE id = ?",
+            "reason = ?, extractor_version = ?, photos = ?, "
+            "status = CASE WHEN status IN ('new', 'photos') THEN ? ELSE status END, "
+            "updated_at = ? WHERE id = ?",
             (r["vin"], int(r["vin_valid"]), r["request_text"], int(r["needs_human"]),
-             r["reason"], r["extractor_version"], now(), inquiry_id))
+             r["reason"], r["extractor_version"], json.dumps(photos, ensure_ascii=False),
+             status, now(), inquiry_id))
         if r["needs_human"]:
             log.info("Zapytanie %s wymaga Gere: %s", inquiry_id, r["reason"])
         else:
