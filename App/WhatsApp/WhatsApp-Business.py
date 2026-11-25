@@ -8,6 +8,8 @@ import signal
 import sys
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import urllib.error
+import urllib.request
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
@@ -15,7 +17,7 @@ import yaml
 
 APP = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(APP))
-from Messages import save_message
+from Messages import photo_target, save_message
 
 ROOT = APP.parent
 LAUNCHER_CONFIG = ROOT / "User" / "Config.yml"
@@ -23,6 +25,76 @@ WEB_CONFIG = ROOT / "User" / "Web-Config.yml"
 DEFAULT_INBOX = "Database/inbox"
 MAX_BODY = 1024 * 1024
 log = logging.getLogger("whatsapp")
+
+MAX_MEDIA = 16 * 1024 * 1024
+GRAPH = "https://graph.facebook.com/v21.0"
+MEDIA_TIMEOUT = 20
+EXTENSIONS = {
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
+    "application/pdf": ".pdf",
+}
+
+
+def media_of(msg):
+    kind = msg.get("type")
+    if kind not in ("image", "document"):
+        return None
+    media = msg.get(kind) or {}
+    media_id = re.sub(r"[^A-Za-z0-9._-]", "_", str(media.get("id") or ""))
+    if not media_id:
+        return None
+    mime = str(media.get("mime_type") or "").split(";")[0].strip().lower()
+    if kind == "document" and mime not in EXTENSIONS:
+        return None
+    return media_id, mime
+
+
+def graph_get(url, token, limit=None):
+    request = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
+    with urllib.request.urlopen(request, timeout=MEDIA_TIMEOUT) as response:
+        data = response.read(limit + 1) if limit else response.read()
+    if limit and len(data) > limit:
+        raise ValueError("media too large")
+    return data
+
+
+def download_media(media_id, mime, token, sender, msg_id, index, sent_ts):
+    meta = json.loads(graph_get(f"{GRAPH}/{media_id}", token))
+    url = str(meta.get("url") or "")
+    if not url.startswith("https://"):
+        raise ValueError("no media url")
+    real_mime = str(meta.get("mime_type") or mime).split(";")[0].strip().lower()
+    ext = EXTENSIONS.get(real_mime)
+    if ext is None:
+        raise ValueError(f"unsupported media type {real_mime}")
+    data = graph_get(url, token, MAX_MEDIA)
+    target, relative = photo_target(sender, msg_id, index, ext, sent_ts)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    part = target.with_name(target.name + ".part")
+    part.write_bytes(data)
+    os.replace(part, target)
+    return relative
+
+
+def fetch_photos(msg, sender, msg_id, sent_ts, cfg):
+    found = media_of(msg)
+    if found is None:
+        return [], []
+    media_id, mime = found
+    if not cfg["access_token"]:
+        log.warning("Brak access_token, zdjęcie %s nie zostanie pobrane", media_id)
+        return [], [media_id]
+    try:
+        return [download_media(media_id, mime, cfg["access_token"], sender, msg_id, 1, sent_ts)], []
+    except urllib.error.HTTPError as exc:
+        if exc.code >= 500 or exc.code == 429:
+            raise
+        log.warning("Nie udało się pobrać zdjęcia %s (HTTP %s)", media_id, exc.code)
+    except (ValueError, KeyError) as exc:
+        log.warning("Nie udało się pobrać zdjęcia %s: %s", media_id, exc)
+    return [], [media_id]
 
 
 def read_yaml(path):
@@ -41,6 +113,7 @@ def load_config():
         "path": str(cloud.get("path", "/webhook")),
         "verify_token": os.environ.get("WHATSAPP_VERIFY_TOKEN") or str(cloud.get("verify_token") or ""),
         "app_secret": os.environ.get("WHATSAPP_APP_SECRET") or str(cloud.get("app_secret") or ""),
+        "access_token": os.environ.get("WHATSAPP_ACCESS_TOKEN") or str(cloud.get("access_token") or ""),
         "phone_number_id": str(cloud.get("phone_number_id") or ""),
         "inbox_dir": inbox if inbox.is_absolute() else ROOT / inbox,
     }
@@ -68,21 +141,22 @@ def message_text(msg):
     return ""
 
 
-def store_message(msg, inbox):
+def store_message(msg, cfg):
     sender = re.sub(r"\D", "", str(msg.get("from") or ""))
     msg_id = re.sub(r"[^A-Za-z0-9._-]", "_", str(msg.get("id") or ""))
     if not sender or not msg_id:
         log.warning("Wiadomość bez nadawcy lub id, pomijam")
         return 0
     text = str(message_text(msg)).strip()
-    if not text:
-        log.warning("Wiadomość %s (typ %s) nie ma tekstu, pomijam", msg_id, msg.get("type"))
-        return 0
     try:
         sent_ts = int(msg.get("timestamp"))
     except (TypeError, ValueError):
         sent_ts = None
-    saved = save_message(sender, msg_id, text, sent_ts)
+    photos, missing = fetch_photos(msg, sender, msg_id, sent_ts, cfg)
+    if not text and not photos and not missing:
+        log.warning("Wiadomość %s (typ %s) nie ma tekstu ani zdjęcia, pomijam", msg_id, msg.get("type"))
+        return 0
+    saved = save_message(sender, msg_id, text, sent_ts, photos, missing)
     if saved:
         log.info("Zapisano wiadomość od %s: %s", sender, msg_id)
     return saved
@@ -91,8 +165,6 @@ def store_message(msg, inbox):
 def save_messages(payload, cfg):
     if payload.get("object") != "whatsapp_business_account":
         return 0
-    inbox = cfg["inbox_dir"]
-    inbox.mkdir(parents=True, exist_ok=True)
     saved = 0
     for entry in payload.get("entry") or []:
         for change in entry.get("changes") or []:
@@ -102,7 +174,7 @@ def save_messages(payload, cfg):
                 log.warning("Wiadomość dla innego numeru (%s), pomijam", number_id)
                 continue
             for msg in value.get("messages") or []:
-                saved += store_message(msg, inbox)
+                saved += store_message(msg, cfg)
     return saved
 
 
@@ -160,7 +232,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             save_messages(payload, cfg)
         except OSError:
-            log.exception("Nie udało się zapisać wiadomości")
+            log.exception("Nie udało się zapisać wiadomości lub pobrać zdjęcia")
             return self.reply(500)
         self.reply(200)
 

@@ -2,12 +2,13 @@
 import json
 import os
 import re
+import shutil
 import threading
 from datetime import date, datetime, timedelta
 
 import yaml
 
-from Paths import DRIVE_MESSAGES, WEB_CONFIG
+from Paths import DRIVE_MESSAGES, DRIVE_PHOTOS, WEB_CONFIG
 
 NAME = re.compile(r"^\d{4}-\d{2}-\d{2}\.jsonl$")
 LOCK = threading.Lock()
@@ -58,16 +59,21 @@ def prune(days=None):
                 removed.append(path.name)
             except OSError:
                 continue
+    prune_photos(cutoff)
     return removed
 
 
-def save_message(sender, msg_id, text, sent_at=None):
+def save_message(sender, msg_id, text, sent_at=None, photos=None, media_missing=None):
     """Dopisuje wiadomość do pliku z jej dnia. Zwraca 1 = zapisano, 0 = duplikat."""
     when = datetime.fromtimestamp(sent_at) if sent_at else datetime.now()
     path = DRIVE_MESSAGES / f"{when:%Y-%m-%d}.jsonl"
-    line = json.dumps({"id": msg_id, "from": sender,
-                       "time": when.isoformat(timespec="seconds"), "text": text},
-                      ensure_ascii=False)
+    record = {"id": msg_id, "from": sender,
+              "time": when.isoformat(timespec="seconds"), "text": text}
+    if photos:
+        record["photos"] = list(photos)
+    if media_missing:
+        record["media_missing"] = list(media_missing)
+    line = json.dumps(record, ensure_ascii=False)
     with LOCK:
         DRIVE_MESSAGES.mkdir(parents=True, exist_ok=True)
         if path.exists():
@@ -108,3 +114,22 @@ def read_messages(days, limit=LIMIT):
         if len(out) >= limit:
             break
     return out[:limit]
+
+
+def photo_target(sender, msg_id, index, ext, sent_at=None):
+    when = datetime.fromtimestamp(sent_at) if sent_at else datetime.now()
+    folder = DRIVE_PHOTOS / f"{when:%Y-%m-%d}"
+    name = f"{sender}__{msg_id}__{index}{ext}"
+    return folder / name, f"Photos/{when:%Y-%m-%d}/{name}"
+
+
+def prune_photos(cutoff):
+    if not DRIVE_PHOTOS.is_dir():
+        return
+    for folder in DRIVE_PHOTOS.iterdir():
+        try:
+            day = date.fromisoformat(folder.name)
+        except ValueError:
+            continue
+        if folder.is_dir() and day < cutoff:
+            shutil.rmtree(folder, ignore_errors=True)

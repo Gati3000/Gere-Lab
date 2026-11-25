@@ -8,7 +8,7 @@ from pathlib import Path
 import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "App"))
-from Paths import WEB_UI_BIN, WHATSAPP_BUSINESS, WEB_CONFIG, INQUIRIES
+from Paths import WEB_UI_BIN, WHATSAPP_BUSINESS, WEB_CONFIG, INQUIRIES, INVOICER
 
 WEB_SERVE = WEB_UI_BIN / "Web-Ui.py"
 PORT = 8080
@@ -53,7 +53,6 @@ def main():
     restart_wa = threading.Event()
     for sig in (signal.SIGINT, signal.SIGTERM):
         signal.signal(sig, lambda *_: stop.set())
-    # Web UI wysyła SIGUSR1 po zapisaniu ustawień, które wymagają restartu webhooka
     signal.signal(signal.SIGUSR1, lambda *_: restart_wa.set())
 
     web = subprocess.Popen([sys.executable, str(WEB_SERVE)],
@@ -68,6 +67,13 @@ def main():
         print(f"Inquiries processor started (PID {inq.pid})", flush=True)
     else:
         print(f"Brak pliku: {INQUIRIES}", flush=True)
+
+    inv = None
+    if INVOICER.is_file():
+        inv = subprocess.Popen([sys.executable, str(INVOICER), "run"])
+        print(f"Invoicer started (PID {inv.pid})", flush=True)
+    else:
+        print(f"Brak pliku: {INVOICER}", flush=True)
 
     try:
         while not stop.is_set():
@@ -85,9 +91,12 @@ def main():
             if inq is not None and inq.poll() is not None:
                 print(f"Inquiries processor zakończył się (kod {inq.returncode}), Web UI działa dalej.", flush=True)
                 inq = None
+            if inv is not None and inv.poll() is not None:
+                print(f"Invoicer zakończył się (kod {inv.returncode}), Web UI działa dalej.", flush=True)
+                inv = None
             stop.wait(1)
     finally:
-        for name, proc in (("Inquiries processor", inq), ("WhatsApp webhook", wa), ("Web UI", web)):
+        for name, proc in (("Invoicer", inv), ("Inquiries processor", inq), ("WhatsApp webhook", wa), ("Web UI", web)):
             stop_proc(name, proc)
 
 

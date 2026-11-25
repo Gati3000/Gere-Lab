@@ -33,9 +33,11 @@ Lab start
 | `Lab start` (or `Lab -up`) | start Gere-Lab |
 | `Lab stop` (or `Lab -s`) | stop Gere-Lab |
 | `Lab restart` | stop and start again |
-| `Lab update` | check the Main branch and update |
-| `Lab update -b` | the same for the Beta branch |
+| `Lab update` (or `Lab update -m`) | check the Main branch (stable) and update, also switches back from Beta |
+| `Lab update -b` | the same for the Beta branch (testing) |
+| `Lab branch` | show the current branch and version |
 | `Lab setup` | run the first-time setup again |
+| `Lab remove` (or `Lab -rm`) | remove Gere-Lab (asks for the root password) |
 | `Lab drive` | update Gere-Drive (if installed) |
 | `Lab help` | show help |
 

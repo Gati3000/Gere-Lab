@@ -6,7 +6,7 @@
 }
 [data-theme="light"] {
   color-scheme: light;
-  --bg:#d6d6d6; --panel:#ffffff; --panel2:#f1f1f1; --border:#b5b5b5; --accent:#6b6b6b;
+  --bg:#ebebeb; --panel:#ffffff; --panel2:#f1f1f1; --border:#b5b5b5; --accent:#6b6b6b;
   --text:#141414; --muted:#666666; --btn:#e4e4e4; --btn-hover:#d2d2d2;
   --primary:#141414; --primary-text:#ffffff; --overlay:rgba(0,0,0,.4); --shadow:0 2px 10px rgba(0,0,0,.18);
 }
@@ -14,21 +14,21 @@
 html, body { height:100%; margin:0; }
 body { background:var(--bg); color:var(--text); font-family:system-ui,"Segoe UI",Roboto,sans-serif; display:flex; flex-direction:column; }
 .topbar { display:flex; justify-content:space-between; align-items:flex-start; padding:14px 22px; border-bottom:1px solid var(--border); background:var(--panel); box-shadow:var(--shadow); }
-.brand { font-size:1.4rem; font-weight:700; letter-spacing:.5px; }
+.brand { font-size:1.54rem; font-weight:700; letter-spacing:.5px; color:inherit; text-decoration:none; }
 .tools { display:flex; flex-direction:column; align-items:flex-end; gap:8px; }
 .tools .row { display:flex; gap:8px; align-items:center; }
-.btn, select { background:var(--btn); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:8px 14px; font-size:.95rem; font-family:inherit; cursor:pointer; text-decoration:none; display:inline-block; }
+.btn, select { background:var(--btn); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:8px 14px; font-size:.95rem; font-family:inherit; cursor:pointer; text-decoration:none; display:inline-block; }
 .btn:hover, select:hover { background:var(--btn-hover); }
 .btn.primary { background:var(--primary); color:var(--primary-text); border-color:var(--primary); font-weight:600; }
 .btn.primary:hover { opacity:.85; }
 .btn.ghost { background:transparent; }
 .layout { flex:1; min-height:0; display:grid; grid-template-columns:1.4fr 1fr; gap:18px; padding:18px 22px; }
-.window { background:var(--panel); border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow); display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+.window { background:var(--panel); border:1px solid var(--border); border-radius:8px; box-shadow:var(--shadow); display:flex; flex-direction:column; min-height:0; overflow:hidden; }
 .window > h2 { margin:0; padding:14px 18px; font-size:1.05rem; background:var(--panel2); border-bottom:1px solid var(--border); }
 .window .content { flex:1; overflow-y:auto; padding:14px 18px; display:flex; flex-direction:column; gap:12px; }
-.msg { background:var(--panel2); border:1px solid var(--border); border-left:4px solid var(--accent); border-radius:10px; padding:10px 14px; }
+.msg { background:var(--panel2); border:1px solid var(--border); border-left:4px solid var(--accent); border-radius:7px; padding:10px 14px; }
 .msg .meta { color:var(--muted); font-size:.8rem; margin-bottom:4px; display:flex; justify-content:space-between; }
-.card { background:var(--panel2); border:1px solid var(--border); border-radius:10px; padding:14px; }
+.card { background:var(--panel2); border:1px solid var(--border); border-radius:7px; padding:14px; }
 .card dl { margin:0 0 12px; display:grid; grid-template-columns:auto 1fr; gap:4px 12px; }
 .card dt { color:var(--muted); }
 .card dd { margin:0; }
@@ -39,15 +39,15 @@ body { background:var(--bg); color:var(--text); font-family:system-ui,"Segoe UI"
 .empty { color:var(--muted); text-align:center; padding:24px; }
 .modal-bg { position:fixed; inset:0; background:var(--overlay); display:none; align-items:center; justify-content:center; padding:16px; }
 .modal-bg.open { display:flex; }
-.modal { background:var(--panel); border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow); padding:20px; width:min(480px,100%); }
+.modal { background:var(--panel); border:1px solid var(--border); border-radius:8px; box-shadow:var(--shadow); padding:20px; width:min(480px,100%); }
 .modal h3 { margin:0 0 6px; }
 .modal p { margin:0 0 12px; color:var(--muted); }
-.modal textarea { width:100%; min-height:120px; resize:vertical; background:var(--panel2); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:10px; font:inherit; }
+.modal textarea { width:100%; min-height:120px; resize:vertical; background:var(--panel2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:10px; font:inherit; }
 .modal .actions { display:flex; justify-content:flex-end; gap:8px; margin-top:14px; }
 @media (max-width:900px) { .layout { grid-template-columns:1fr; } .window { min-height:360px; } }
 .page { flex:1; min-height:0; padding:18px 22px; display:flex; }
 .page .window { flex:1; }
-.block { background:var(--panel2); border:1px solid var(--border); border-radius:10px; padding:14px; }
+.block { background:var(--panel2); border:1px solid var(--border); border-radius:7px; padding:14px; }
 .block h3 { margin:0 0 6px; }
 .block p { margin:0; color:var(--muted); }
 .linkrow { display:flex; justify-content:space-between; align-items:center; gap:12px; }
@@ -55,7 +55,7 @@ body { background:var(--bg); color:var(--text); font-family:system-ui,"Segoe UI"
 .linkrow .desc { color:var(--muted); font-size:.85rem; }
 .fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; margin-top:12px; }
 .fields label { display:flex; flex-direction:column; gap:4px; color:var(--muted); font-size:.85rem; }
-.fields input { background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:8px 10px; font:inherit; }
+.fields input { background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:8px 10px; font:inherit; }
 .savebar { display:flex; align-items:center; gap:12px; }
 .savebar .note { color:var(--muted); }
 .window > h2.head { display:flex; justify-content:space-between; align-items:center; gap:12px; }
@@ -66,3 +66,5 @@ body { background:var(--bg); color:var(--text); font-family:system-ui,"Segoe UI"
 .blockhead { display:flex; justify-content:space-between; align-items:center; gap:12px; }
 .check { display:flex; align-items:center; gap:6px; cursor:pointer; }
 .modal .fields { grid-template-columns:1fr; margin:12px 0; }
+.testrow { display:flex; align-items:center; gap:12px; margin-top:12px; }
+.testrow .note { color:var(--muted); font-size:.85rem; }

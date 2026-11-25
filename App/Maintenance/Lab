@@ -1,27 +1,30 @@
 #!/usr/bin/env bash
-# Lab - narzędzie CLI do zarządzania Gere-Lab
-#   Lab start | -up        uruchamia App/Main.py
-#   Lab stop  | -s         zatrzymuje program
-#   Lab update             aktualizuje z gałęzi główną i uruchamia Update.py
-#   Lab update -b          aktualizuje z gałęzi Beta
 
 MAIN_BRANCH="Main"
 BETA_BRANCH="Beta"
 
-# Rozwiązuje symlink, więc działa też po instalacji do /usr/local/bin
 SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
 MAINT_DIR="$(dirname "$SCRIPT_PATH")"
 APP_DIR="$(dirname "$MAINT_DIR")"
 REPO_DIR="$(dirname "$APP_DIR")"
 MAIN_PY="$REPO_DIR/Main.py"
-UPDATE_PY="$APP_DIR/Update.py"
+UPDATE_PY="$APP_DIR/Maintenance/Update.py"
 
-# Drugie repo: Gere-Drive leży obok Gere-Lab
 DRIVE_DIR="$(dirname "$REPO_DIR")/Gere-Drive"
 DRIVE_URL="https://github.com/Gati3000/Gere-Drive.git"
 DRIVE_BRANCH="main"
 SETUP_SH="$APP_DIR/Launcher/Launcher.py"
 SETUP_MARK="$HOME/.config/gere-lab/first-run-done"
+RED=$'\033[31m'
+GREEN=$'\033[32m'
+WHITE=$'\033[97m'
+RESET=$'\033[0m'
+BIN_LINK="${GERE_BIN_DIR:-/usr/local/bin}/Lab"
+BACKUP_ROOT="${GERE_BACKUP_DIR:-$HOME/Gere-Backup}"
+PASSWORD_PY="$MAINT_DIR/Password.py"
+MERGE_PY="$MAINT_DIR/Merge.py"
+CONFIG_DIR="$HOME/.config/gere-lab"
+BASHRC="$HOME/.bashrc"
 
 RUN_DIR="${TMPDIR:-/tmp}/gere-lab"
 PID_FILE="$RUN_DIR/lab.pid"
@@ -98,9 +101,26 @@ drive_sync() {
     echo "Gere-Drive: aktualne ($(git -C "$DRIVE_DIR" rev-parse --short HEAD))."
 }
 
+lab_branch() {
+    if ! git -C "$REPO_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        echo "Błąd: $REPO_DIR nie jest repozytorium git." >&2
+        return 1
+    fi
+    local cur kind="inna"
+    cur="$(git -C "$REPO_DIR" rev-parse --abbrev-ref HEAD)"
+    [[ "$cur" == "$MAIN_BRANCH" ]] && kind="stabilna"
+    [[ "$cur" == "$BETA_BRANCH" ]] && kind="testowa"
+    echo "Gałąź: $cur ($kind), wersja $(git -C "$REPO_DIR" rev-parse --short HEAD)."
+}
+
 lab_update() {
     local branch="$MAIN_BRANCH"
-    [[ "${1:-}" == "-b" ]] && branch="$BETA_BRANCH"
+    case "${1:-}" in
+        "")  ;;
+        -m)  branch="$MAIN_BRANCH" ;;
+        -b)  branch="$BETA_BRANCH" ;;
+        *)   echo "Nieznana opcja: $1 (użyj -m dla $MAIN_BRANCH albo -b dla $BETA_BRANCH)." >&2; return 1 ;;
+    esac
 
     drive_sync || echo "Uwaga: Gere-Drive nie zostało zaktualizowane." >&2
 
@@ -125,7 +145,6 @@ lab_update() {
         return 0
     fi
 
-    # Nie nadpisujemy niezacommitowanych zmian
     if ! git -C "$REPO_DIR" diff --quiet HEAD --; then
         echo "Masz niezacommitowane zmiany. Zrób commit lub 'git stash' i spróbuj ponownie." >&2
         return 1
@@ -161,6 +180,121 @@ lab_update() {
     return 0
 }
 
+ask_yes_no() {
+    local answer
+    while true; do
+        IFS= read -r -p "${WHITE}$1${RESET}" answer || exit 1
+        case "${answer,,}" in
+            y|yes) return 0 ;;
+            n|no)  return 1 ;;
+        esac
+    done
+}
+
+merge_tree() {
+    local src="$1" dest="$2" file rel
+    mkdir -p "$dest" || return 1
+    while IFS= read -r -d '' file; do
+        rel="${file#"$src"/}"
+        [[ "$rel" == .gitkeep || "$rel" == */.gitkeep ]] && continue
+        mkdir -p "$dest/$(dirname "$rel")" || return 1
+        if [[ -e "$dest/$rel" && "$rel" == *.jsonl ]]; then
+            python3 -I "$MERGE_PY" "$dest/$rel" "$file" || return 1
+        else
+            cp -a --backup=numbered "$file" "$dest/$rel" || return 1
+        fi
+    done < <(find "$src" -type f -print0)
+}
+
+backup_database() {
+    local dest src name
+    dest="$BACKUP_ROOT/Gere-Database-$(date +%Y-%m-%d_%H%M%S)"
+    case "$dest/" in
+        "$REPO_DIR"/*|"$DRIVE_DIR"/*) echo "Backup folder must be outside Gere-Lab and Gere-Drive." >&2; return 1 ;;
+    esac
+    mkdir -p "$dest" || return 1
+    if [[ -d "$REPO_DIR/Database" ]]; then
+        merge_tree "$REPO_DIR/Database" "$dest" || return 1
+    fi
+    if [[ -d "$DRIVE_DIR/.git" ]]; then
+        for name in Messeges Parts Invoices Clients; do
+            [[ -d "$DRIVE_DIR/$name" ]] && { merge_tree "$DRIVE_DIR/$name" "$dest/$name" || return 1; }
+        done
+        for src in "$DRIVE_DIR"/App/[0-9][0-9][0-9][0-9][0-9][0-9]; do
+            [[ -d "$src" ]] && { merge_tree "$src" "$dest/Clients/$(basename "$src")" || return 1; }
+        done
+    fi
+    if [[ -z "$(ls -A "$dest")" ]]; then
+        rmdir "$dest"
+        echo "No database found, nothing to save."
+        return 0
+    fi
+    echo "Database saved to: $dest"
+}
+
+remove_lab_files() {
+    if [[ -z "$REPO_DIR" || "$REPO_DIR" == "/" || "$REPO_DIR" == "$HOME" || ! -f "$REPO_DIR/App/Maintenance/Lab" ]]; then
+        echo "Unexpected Gere-Lab location: $REPO_DIR, nothing removed." >&2
+        return 1
+    fi
+    cd / || return 1
+    if [[ -L "$BIN_LINK" && "$(readlink -f "$BIN_LINK")" == "$SCRIPT_PATH" ]]; then
+        rm -f "$BIN_LINK"
+    fi
+    rm -rf "$CONFIG_DIR" "$RUN_DIR"
+    if [[ -f "$BASHRC" ]]; then
+        sed -i '/^# >>> Gere-Lab prompt >>>$/,/^# <<< Gere-Lab prompt <<<$/d' "$BASHRC"
+    fi
+    rm -rf "$REPO_DIR"
+    printf '%s\n' "${WHITE}Gere-Lab removed. Run: exec bash${RESET}"
+}
+
+lab_remove() {
+    if [[ $EUID -ne 0 ]]; then
+        echo "Run as root." >&2
+        return 1
+    fi
+    if [[ ! -t 0 ]]; then
+        echo "A terminal is required." >&2
+        return 1
+    fi
+    local password code
+    printf '%s\n' "${RED}Write password to remove Gere Lab${RESET}"
+    IFS= read -rs password || return 1
+    echo
+    printf '%s' "$password" | python3 -I "$PASSWORD_PY"
+    code=$?
+    password=""
+    case $code in
+        0) ;;
+        1) printf '%s\n' "${GREEN}Off i thought you wanted to uninstall !${RESET}"; return 1 ;;
+        *) echo "Cannot verify the root password (is it set? code $code)." >&2; return 1 ;;
+    esac
+
+    local drop_drive=0 save_db=0
+    if [[ -d "$DRIVE_DIR/.git" ]] && ask_yes_no "Do you want to uninstall Gere-Drive? yes/no (put y/n) "; then
+        drop_drive=1
+    fi
+    if ask_yes_no "Do you want to save Database (yes/no y/n) "; then
+        save_db=1
+    else
+        printf '%s\n' "${WHITE}Database is terminated${RESET}"
+    fi
+
+    is_running && lab_stop
+    if [[ $save_db -eq 1 ]]; then
+        backup_database || { echo "Backup failed, nothing was removed." >&2; return 1; }
+    fi
+    if [[ $drop_drive -eq 1 ]]; then
+        if [[ -f "$DRIVE_DIR/App/Uninstall.py" ]]; then
+            python3 "$DRIVE_DIR/App/Uninstall.py" || { echo "Gere-Drive uninstaller failed, Gere-Lab was not removed." >&2; return 1; }
+        else
+            echo "Gere-Drive uninstaller (App/Uninstall.py) does not exist yet, Gere-Drive was left in place."
+        fi
+    fi
+    remove_lab_files
+}
+
 first_run() {
     [[ -f "$SETUP_MARK" ]] && return 0
     if [[ ! -t 0 ]]; then
@@ -180,8 +314,11 @@ Użycie: Lab <komenda>
   start, -up      uruchom Main.py
   stop,  -s       zatrzymaj program
   restart         zatrzymaj i uruchom ponownie
-  update          sprawdź gałąź $MAIN_BRANCH, pobierz zmiany i uruchom Update.py
-  update -b       to samo dla gałęzi $BETA_BRANCH
+  update          sprawdź gałąź $MAIN_BRANCH (stabilna), pobierz zmiany i uruchom Update.py
+  update -m       to samo, także wraca z gałęzi $BETA_BRANCH na $MAIN_BRANCH
+  update -b       to samo dla gałęzi $BETA_BRANCH (testowa)
+  branch          pokaż aktualną gałąź i wersję
+  remove, -rm     usuń Gere-Lab (wymaga hasła roota)
   setup           konfiguracja startowa (powitanie, pakiety, Gere-Drive, prompt)
   drive           zaktualizuj Gere-Drive (jeśli pobrane)
   help,  -h       ta pomoc
@@ -189,10 +326,8 @@ HELP
 }
 
 main() {
-    # Pierwsze uruchomienie przy dowolnej komendzie (poza "setup", który robi to sam).
-    # Przy "start" nieukończona konfiguracja zatrzymuje start, przy reszcie nie blokuje.
     case "${1:-}" in
-        setup) ;;
+        setup|remove|-rm) ;;
         start|-up) first_run || return 1 ;;
         *) first_run || true ;;
     esac
@@ -202,13 +337,13 @@ main() {
         stop|-s)   lab_stop ;;
         restart)   lab_stop; lab_start ;;
         update)    lab_update "${2:-}" ;;
+        branch)    lab_branch ;;
+        remove|-rm) lab_remove ;;
         drive)     drive_sync ;;
         help|-h|"") lab_help ;;
         *) echo "Nieznana komenda: $1" >&2; lab_help; return 1 ;;
     esac
 }
 
-# Cały skrypt jest wczytany przed wykonaniem, więc git pull może bezpiecznie
-# podmienić ten plik w trakcie działania.
 main "$@"
 exit $?

@@ -5,10 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Gere Lab</title>
 <link rel="stylesheet" href="Themes.css">
+<style>
+[hidden] { display:none !important; }
+.card .items { white-space:pre-line; }
+.card .note { color:var(--muted); font-size:.85rem; margin-top:8px; }
+.card .ref { color:var(--muted); font-size:.85rem; margin-bottom:6px; display:flex; justify-content:space-between; gap:10px; }
+.card .actions button:disabled { opacity:.5; cursor:default; }
+#invError { margin-bottom:10px; }
+</style>
 </head>
 <body>
 <header class="topbar">
-  <div class="brand">Gere Lab</div>
+  <a class="brand" href="Home.html">Gere Lab</a>
   <div class="tools">
     <div class="row">
       <button class="btn" id="themeBtn" type="button"></button>
@@ -21,6 +29,7 @@
     </div>
     <div class="row">
       <a class="btn" href="Index.html" data-i18n="links"></a>
+      <a class="btn" href="Shipment.html" data-i18n="shipment"></a>
       <a class="btn" href="Instruction.html" data-i18n="instruction"></a>
     </div>
   </div>
@@ -32,15 +41,18 @@
     <div class="content" id="messages"></div>
   </section>
   <section class="window">
-    <h2 data-i18n="labels"></h2>
-    <div class="content" id="labels"></div>
+    <h2><span data-i18n="invoices"></span><span id="invCount"></span></h2>
+    <div class="content" id="invoices">
+      <div class="empty" id="invError" hidden data-i18n="invoiceError"></div>
+      <div id="invoiceList"></div>
+    </div>
   </section>
 </main>
 
 <div class="modal-bg" id="rejectModal">
   <div class="modal">
-    <h3 data-i18n="rejectTitle"></h3>
-    <p data-i18n="rejectHint"></p>
+    <h3 data-i18n="invRejectTitle"></h3>
+    <p data-i18n="invRejectHint"></p>
     <textarea id="rejectReason" data-i18n-ph="reasonPh"></textarea>
     <div class="actions">
       <button class="btn ghost" id="rejectCancel" type="button" data-i18n="cancel"></button>
@@ -51,21 +63,14 @@
 
 <script src="../Bin/Common.js"></script>
 <script>
-// PRZYKŁADOWE DANE - później podmienimy na API z backendu (Database/inbox)
-const MESSAGES = [
-  { from:"Jan",   time:"14:32", text:"Potrzebuję alternatora do Passata B6, wysyłka InPost." },
-  { from:"Marta", time:"14:10", text:"Proszę o wysyłkę amortyzatorów przód, 2 szt." },
-  { from:"Jan",   time:"13:55", text:"Adres bez zmian jak ostatnio." }
-];
-const LABELS = [
-  { id:1, to:"Jan Przykładowy",   address:"ul. Testowa 1, 30-001 Kraków",  part:"Alternator (Passat B6)",   carrier:"InPost" },
-  { id:2, to:"Marta Przykładowa", address:"ul. Próbna 5, 00-950 Warszawa", part:"Amortyzatory przód x2",    carrier:"DPD" }
-];
-const state = {};   // id -> "accepted" | "rejected"
+const MESSAGES = [];
+let INVOICES = [];
+let lastInvoices = "";
 let rejectId = null;
 
 const $ = id => document.getElementById(id);
 function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+function money(value, currency) { return value + " " + (currency || "EUR"); }
 
 function renderMessages() {
   const box = $("messages"); box.replaceChildren();
@@ -77,40 +82,66 @@ function renderMessages() {
   });
 }
 
-function renderLabels() {
-  const box = $("labels"); box.replaceChildren();
-  if (!LABELS.length) { box.append(el("div","empty",Common.t("noLabels"))); return; }
-  LABELS.forEach(l => {
+function renderInvoices() {
+  const box = $("invoiceList"); box.replaceChildren();
+  $("invCount").textContent = INVOICES.length ? " (" + INVOICES.length + ")" : "";
+  if (!INVOICES.length) { box.append(el("div","empty",Common.t("noInvoices"))); return; }
+  INVOICES.forEach(inv => {
     const card = el("div","card"), dl = el("dl");
-    [["recipient",l.to],["address",l.address],["part",l.part],["carrier",l.carrier]].forEach(([k,v]) => {
-      dl.append(el("dt","",Common.t(k)), el("dd","",v));
+    const ref = el("div","ref");
+    ref.append(el("span","",inv.id), el("span","",String(inv.created || "").slice(0, 16).replace("T", " ")));
+    const lines = (inv.items || []).map(i => i.qty + " × " + i.name + " — " + money(i.price, inv.currency));
+    [["invoiceClient", inv.client_name || inv.contact || "-"],
+     ["invoiceItems", lines.join("\n")],
+     ["invoiceTotal", money(inv.total, inv.currency)]].forEach(([k, v]) => {
+      const dd = el("dd","",v);
+      if (k === "invoiceItems") dd.className = "items";
+      dl.append(el("dt","",Common.t(k)), dd);
     });
-    card.append(dl);
-    if (state[l.id]) {
-      card.classList.add("done");
-      card.append(el("div","status",Common.t(state[l.id])));
-    } else {
-      const a = el("div","actions");
-      const ok = el("button","btn primary",Common.t("accept")), no = el("button","btn",Common.t("reject"));
-      ok.type = no.type = "button";
-      ok.onclick = () => { state[l.id] = "accepted"; renderLabels(); /* TODO: POST /api/labels/ID/accept */ };
-      no.onclick = () => { rejectId = l.id; $("rejectReason").value = ""; $("rejectModal").classList.add("open"); $("rejectReason").focus(); };
-      a.append(ok, no); card.append(a);
-    }
+    card.append(ref, dl);
+    if (inv.note) card.append(el("div","note",inv.note));
+    const a = el("div","actions");
+    const ok = el("button","btn primary",Common.t("accept")), no = el("button","btn",Common.t("reject"));
+    ok.type = no.type = "button";
+    ok.onclick = () => { ok.disabled = no.disabled = true; decide(inv.id, "approve", ""); };
+    no.onclick = () => { rejectId = inv.id; $("rejectReason").value = ""; $("rejectModal").classList.add("open"); $("rejectReason").focus(); };
+    a.append(ok, no); card.append(a);
     box.append(card);
   });
+}
+
+async function loadInvoices() {
+  try {
+    const r = await fetch("/api/invoices?status=pending", { cache: "no-store" });
+    if (!r.ok) throw new Error(r.status);
+    const next = (await r.json()).invoices || [];
+    $("invError").hidden = true;
+    const sig = JSON.stringify(next);
+    if (sig !== lastInvoices) { lastInvoices = sig; INVOICES = next; renderInvoices(); }
+  } catch (e) { console.error("invoices load failed:", e); $("invError").hidden = false; }
+}
+
+async function decide(id, action, reason) {
+  try {
+    const r = await fetch("/api/invoices/" + encodeURIComponent(id) + "/" + action, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reason: reason || "" })
+    });
+    if (!r.ok && r.status !== 409) throw new Error(r.status);
+  } catch (e) { console.error("invoice decision failed:", e); $("invError").hidden = false; }
+  lastInvoices = "";
+  await loadInvoices();
 }
 
 function closeModal() { $("rejectModal").classList.remove("open"); rejectId = null; }
 $("rejectCancel").onclick = closeModal;
 $("rejectModal").onclick = e => { if (e.target.id === "rejectModal") closeModal(); };
 $("rejectSend").onclick = () => {
-  const reason = $("rejectReason").value.trim();
-  if (rejectId !== null) { state[rejectId] = "rejected"; console.log("reject", rejectId, reason); /* TODO: POST /api/labels/ID/reject {reason} */ }
-  closeModal(); renderLabels();
+  const id = rejectId, reason = $("rejectReason").value.trim();
+  closeModal();
+  if (id !== null) decide(id, "reject", reason);
 };
 
-document.addEventListener("uichange", () => { renderMessages(); renderLabels(); });
+document.addEventListener("uichange", () => { renderMessages(); renderInvoices(); });
 async function loadMessages() {
   try {
     const r = await fetch("/api/messages", { cache: "no-store" });
@@ -125,10 +156,11 @@ async function loadMessages() {
     renderMessages();
   } catch (e) { console.error("messages load failed:", e); }
 }
-MESSAGES.length = 0;
 Common.init();
 loadMessages();
+loadInvoices();
 setInterval(loadMessages, 10000);
+setInterval(loadInvoices, 10000);
 </script>
 </body>
 </html>

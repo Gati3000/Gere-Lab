@@ -1,18 +1,19 @@
-import http.server, socketserver, sys, posixpath, urllib.parse, json, os, yaml
+import http.server, socketserver, sys, posixpath, urllib.parse, urllib.request, urllib.error, json, os, yaml
 from pathlib import Path
 
 
-# Paths.py is in App/ (three levels above this file)
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
-from Paths import WEB_UI_UI, WEB_UI_BIN, LANGUAGE, WEB_CONFIG, INDEXES
+from Paths import WEB_UI_UI, WEB_UI_BIN, LANGUAGE, WEB_CONFIG, INDEXES, BIN
 from Messages import prune, read_messages, retention_days
+sys.path.insert(0, str(BIN))
+import Invoices
 
 PORT = 8080
 ROUTES = {"Ui": WEB_UI_UI, "Bin": WEB_UI_BIN, "Language": LANGUAGE}
 MAX_BODY = 64 * 1024
 MAX_LINKS = 200
 MASK = "********"
-# section -> field -> (type, secret). Only these fields can be saved from Settings
+TEST_TIMEOUT = 5
 WHATSAPP_FIELDS = {
     "cloud_api": {
         "enabled": (bool, False), "host": (str, False), "port": (int, False), "path": (str, False), "phone_number_id": (str, False),
@@ -72,7 +73,6 @@ def whatsapp_merge(cfg, incoming):
                 target[name] = sent[name] is True
                 continue
             value = str(sent[name]).strip()
-            # masked secret means "unchanged"
             if secret and value == MASK:
                 continue
             if value == "":
@@ -81,12 +81,46 @@ def whatsapp_merge(cfg, incoming):
             target[name] = kind(value)
 
 
+TEST_REQUIRED = {
+    "cloud_api": ("phone_number_id", "access_token"),
+    "bridge": ("url",),
+    "provider": ("account_id", "auth_token", "sender_number"),
+}
+
+
+def http_check(url, headers):
+    req = urllib.request.Request(url, headers=headers)
+    try:
+        with urllib.request.urlopen(req, timeout=TEST_TIMEOUT):
+            return "waTestOk"
+    except urllib.error.HTTPError as e:
+        return "waTestBadKey" if e.code in (400, 401, 403) else "waTestFail"
+    except (urllib.error.URLError, OSError, ValueError):
+        return "waTestNoConn"
+
+
+def whatsapp_test(cfg, section):
+    saved = cfg.get("whatsapp") if isinstance(cfg.get("whatsapp"), dict) else {}
+    values = saved.get(section) if isinstance(saved.get(section), dict) else {}
+    if any(not values.get(name) for name in TEST_REQUIRED[section]):
+        return "waTestMissing"
+    if section == "cloud_api":
+        url = "https://graph.facebook.com/" + urllib.parse.quote(str(values["phone_number_id"]), safe="")
+        return http_check(url, {"Authorization": "Bearer " + str(values["access_token"])})
+    if section == "bridge":
+        url = str(values["url"]).strip()
+        if urllib.parse.urlparse(url).scheme not in ("http", "https"):
+            return "waTestMissing"
+        headers = {"X-Api-Key": str(values["api_key"])} if values.get("api_key") else {}
+        return http_check(url, headers)
+    return "waTestFilled"
+
+
 def clean_link(data):
     name = str(data.get("name", "")).strip()[:80]
     url = str(data.get("url", "")).strip()[:500]
     desc = str(data.get("desc", "")).strip()[:200]
     parts = urllib.parse.urlparse(url)
-    # only web links, so a saved link can never run a script
     if not name or parts.scheme not in ("http", "https") or not parts.netloc:
         raise ValueError("bad link")
     return {"name": name, "url": url, "desc": desc}
@@ -100,6 +134,14 @@ def links_list(cfg):
         except (ValueError, AttributeError):
             continue
     return out
+
+
+def invoice_route(path):
+    """'/api/invoices/INV-000001/approve' -> ('INV-000001', 'approve'); inaczej None."""
+    parts = path.strip("/").split("/")
+    if len(parts) == 4 and parts[:2] == ["api", "invoices"] and parts[3] in ("approve", "reject"):
+        return parts[2], parts[3]
+    return None
 
 
 class H(http.server.SimpleHTTPRequestHandler):
@@ -144,10 +186,18 @@ class H(http.server.SimpleHTTPRequestHandler):
                 return self.send_json(200, {"links": links_list(read_config(INDEXES))})
             except (OSError, yaml.YAMLError):
                 return self.send_error(500, "Links read failed")
+        if urllib.parse.urlparse(self.path).path == "/api/invoices":
+            query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            status = (query.get("status") or [None])[0]
+            if status is not None and status not in Invoices.STATUSES:
+                return self.send_error(400)
+            try:
+                return self.send_json(200, {"invoices": Invoices.list_invoices(status)})
+            except OSError:
+                return self.send_error(500, "Invoices read failed")
         super().do_GET()
 
     def read_json(self):
-        # JSON content type blocks simple cross-site form posts
         if not self.headers.get("Content-Type", "").startswith("application/json"):
             self.send_error(415)
             return None
@@ -203,15 +253,58 @@ class H(http.server.SimpleHTTPRequestHandler):
             return self.send_error(500, "Links write failed")
         self.send_json(200, {"links": links})
 
+    def run_test(self, data):
+        section = data.get("section") if isinstance(data, dict) else None
+        if section not in TEST_REQUIRED:
+            return self.send_error(400)
+        try:
+            code = whatsapp_test(read_config(), section)
+        except (OSError, yaml.YAMLError):
+            return self.send_error(500, "Config read failed")
+        self.send_json(200, {"code": code})
+
+    def create_invoice(self, data):
+        try:
+            invoice = Invoices.create_invoice(
+                data["items"], client_id=data.get("client_id"), contact=data.get("contact", ""),
+                inquiry_id=data.get("inquiry_id"), note=str(data.get("note", "")).strip()[:500], source="api")
+        except (ValueError, KeyError, TypeError, AttributeError):
+            return self.send_error(400)
+        except OSError:
+            return self.send_error(500, "Invoice write failed")
+        self.send_json(201, {"invoice": invoice})
+
+    def decide_invoice(self, invoice_id, action, data):
+        status = "approved" if action == "approve" else "rejected"
+        reason = str(data.get("reason", "")).strip()[:500] if isinstance(data, dict) else ""
+        try:
+            invoice = Invoices.decide(invoice_id, status, reason)
+        except ValueError:
+            return self.send_error(400)
+        except Invoices.NotFound:
+            return self.send_error(404, "No such invoice")
+        except Invoices.AlreadyDecided:
+            return self.send_error(409, "Already decided")
+        except OSError:
+            return self.send_error(500, "Invoice write failed")
+        self.send_json(200, {"invoice": invoice})
+
     def do_POST(self):
         path = urllib.parse.urlparse(self.path).path
-        if path not in ("/api/config", "/api/links"):
+        route = invoice_route(path)
+        if path not in ("/api/config", "/api/links", "/api/test", "/api/invoices") and route is None:
             return self.send_error(404, "Not found")
         data = self.read_json()
         if data is None:
             return
+        if path == "/api/invoices":
+            return self.create_invoice(data)
+        if route is not None:
+            return self.decide_invoice(route[0], route[1], data)
         if path == "/api/links":
             return self.save_link(data)
+        if path == "/api/test":
+            return self.run_test(data)
         self.save_config(data)
 
     def end_headers(self):
