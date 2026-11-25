@@ -186,7 +186,6 @@
 
 <script src="../Bin/Common.js"></script>
 <script>
-// Sample data. The last edit is remembered in this browser, so a reload keeps it.
 const DEFAULTS = {
   size:"100x150", w:100, h:150, frame:false,
   toName:"Jan Przykładowy", toStreet:"Calle Ejemplo 12, Nave 3", toPostal:"28001", toCity:"Madrid", toCountry:"ES", toPhone:"+34600000000",
@@ -212,7 +211,6 @@ function sizeMm() {
   return [w, h];
 }
 
-// One function builds both the preview and the printed page from the same state.
 function render() {
   const [w, h] = sizeMm();
   const fs = (3.6 * Math.min(w / 100, h / 150)).toFixed(3) + "mm";
@@ -241,7 +239,6 @@ function render() {
   fit();
 }
 
-// Screen only: shrink the preview to the available width. Print always uses zoom 1.
 function fit() {
   const [w] = sizeMm(), px = w * 96 / 25.4, avail = $("stage").clientWidth - 36;
   label.style.setProperty("--zoom", avail > 0 && px > avail ? (avail / px).toFixed(3) : "1");

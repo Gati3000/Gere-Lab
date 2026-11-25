@@ -1,22 +1,15 @@
 #!/usr/bin/env bash
-# Lab - narzędzie CLI do zarządzania Gere-Lab
-#   Lab start | -up        uruchamia App/Main.py
-#   Lab stop  | -s         zatrzymuje program
-#   Lab update             aktualizuje z gałęzi główną i uruchamia Update.py
-#   Lab update -b          aktualizuje z gałęzi Beta
 
 MAIN_BRANCH="Main"
 BETA_BRANCH="Beta"
 
-# Rozwiązuje symlink, więc działa też po instalacji do /usr/local/bin
 SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
 MAINT_DIR="$(dirname "$SCRIPT_PATH")"
 APP_DIR="$(dirname "$MAINT_DIR")"
 REPO_DIR="$(dirname "$APP_DIR")"
 MAIN_PY="$REPO_DIR/Main.py"
-UPDATE_PY="$APP_DIR/Update.py"
+UPDATE_PY="$APP_DIR/Maintenance/Update.py"
 
-# Drugie repo: Gere-Drive leży obok Gere-Lab
 DRIVE_DIR="$(dirname "$REPO_DIR")/Gere-Drive"
 DRIVE_URL="https://github.com/Gati3000/Gere-Drive.git"
 DRIVE_BRANCH="main"
@@ -152,7 +145,6 @@ lab_update() {
         return 0
     fi
 
-    # Nie nadpisujemy niezacommitowanych zmian
     if ! git -C "$REPO_DIR" diff --quiet HEAD --; then
         echo "Masz niezacommitowane zmiany. Zrób commit lub 'git stash' i spróbuj ponownie." >&2
         return 1
@@ -334,8 +326,6 @@ HELP
 }
 
 main() {
-    # Pierwsze uruchomienie przy dowolnej komendzie (poza "setup", który robi to sam).
-    # Przy "start" nieukończona konfiguracja zatrzymuje start, przy reszcie nie blokuje.
     case "${1:-}" in
         setup|remove|-rm) ;;
         start|-up) first_run || return 1 ;;
@@ -355,7 +345,5 @@ main() {
     esac
 }
 
-# Cały skrypt jest wczytany przed wykonaniem, więc git pull może bezpiecznie
-# podmienić ten plik w trakcie działania.
 main "$@"
 exit $?

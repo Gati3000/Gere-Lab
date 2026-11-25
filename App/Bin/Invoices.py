@@ -154,7 +154,6 @@ def create_invoice(items, client_id=None, contact="", inquiry_id=None, note="", 
         while True:
             invoice_id = f"INV-{number:06d}"
             try:
-                # O_EXCL zajmuje numer atomowo, także gdy drugi proces tworzy fakturę w tej samej chwili
                 fd = os.open(_path(invoice_id), os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644)
             except FileExistsError:
                 number += 1

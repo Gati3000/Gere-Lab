@@ -8,7 +8,7 @@ _TOKEN_17 = re.compile(r"(?<![A-Z0-9])[A-Z0-9]{17}(?![A-Z0-9])")
 _TOKEN_LONG = re.compile(r"(?<![A-Z0-9])[A-Z0-9]{14,20}(?![A-Z0-9])")
 _FORBIDDEN = set("IOQ")
 _ALNUM = re.compile(r"[A-Z0-9]+")
-_SEPARATOR = re.compile(r"[ \-.]{1,2}")   # between groups of a VIN: space, dash or dot
+_SEPARATOR = re.compile(r"[ \-.]{1,2}")
 
 _TRANSLIT = {str(d): d for d in range(10)}
 _TRANSLIT.update(
@@ -57,7 +57,6 @@ def _spaced_vins(upper):
 
 def _clean_request(text, vin):
     if vin:
-        # każdy znak VIN-u może być oddzielony spacją, kreską lub kropką
         pattern = r"(?:\bvin\b\s*[:=\-]?\s*)?" + r"[ \-.]{0,2}".join(re.escape(c) for c in vin)
         text = re.sub(pattern, " ", text, flags=re.IGNORECASE)
     text = " ".join(text.split())
@@ -585,7 +584,6 @@ def extract(text):
         result["reason"] = "VIN ma niedozwolone znaki (I, O, Q)"
         return result
 
-    # Powalona logika Amerykańskich samochodow zajrzec jeszcze i rozszerzyc o inne panstwa
     if vin[0] in "12345" and not check_digit_ok(vin):
         result["needs_human"] = True
         result["reason"] = "cyfra kontrolna VIN się nie zgadza"

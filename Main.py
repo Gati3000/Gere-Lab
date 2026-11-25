@@ -53,7 +53,6 @@ def main():
     restart_wa = threading.Event()
     for sig in (signal.SIGINT, signal.SIGTERM):
         signal.signal(sig, lambda *_: stop.set())
-    # Web UI wysyła SIGUSR1 po zapisaniu ustawień, które wymagają restartu webhooka
     signal.signal(signal.SIGUSR1, lambda *_: restart_wa.set())
 
     web = subprocess.Popen([sys.executable, str(WEB_SERVE)],

@@ -31,7 +31,6 @@ from Paths import WEB_CONFIG
 MAX_BODY = 1024 * 1024
 log = logging.getLogger("whatsapp-bridge")
 
-# czaty, których nie zapisujemy: grupy, statusy, kanały
 SKIP_SUFFIXES = ("@g.us", "@broadcast", "@newsletter")
 
 
@@ -65,7 +64,7 @@ def to_timestamp(value):
         ts = int(value)
     except (TypeError, ValueError):
         return None
-    return ts // 1000 if ts > 10 ** 11 else ts   # WAHA podaje sekundy, na wszelki wypadek obsługa ms
+    return ts // 1000 if ts > 10 ** 11 else ts
 
 
 def store_event(event, cfg):
@@ -134,7 +133,7 @@ class Handler(BaseHTTPRequestHandler):
             store_event(event, cfg)
         except OSError:
             log.exception("Nie udało się zapisać wiadomości")
-            return self.reply(500)   # WAHA ponowi wysyłkę
+            return self.reply(500)
         self.reply(200)
 
 

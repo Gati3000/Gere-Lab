@@ -2,7 +2,6 @@ import http.server, socketserver, sys, posixpath, urllib.parse, urllib.request, 
 from pathlib import Path
 
 
-# Paths.py is in App/ (three levels above this file)
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 from Paths import WEB_UI_UI, WEB_UI_BIN, LANGUAGE, WEB_CONFIG, INDEXES, BIN
 from Messages import prune, read_messages, retention_days
@@ -15,7 +14,6 @@ MAX_BODY = 64 * 1024
 MAX_LINKS = 200
 MASK = "********"
 TEST_TIMEOUT = 5
-# section -> field -> (type, secret). Only these fields can be saved from Settings
 WHATSAPP_FIELDS = {
     "cloud_api": {
         "enabled": (bool, False), "host": (str, False), "port": (int, False), "path": (str, False), "phone_number_id": (str, False),
@@ -75,7 +73,6 @@ def whatsapp_merge(cfg, incoming):
                 target[name] = sent[name] is True
                 continue
             value = str(sent[name]).strip()
-            # masked secret means "unchanged"
             if secret and value == MASK:
                 continue
             if value == "":
@@ -112,12 +109,10 @@ def whatsapp_test(cfg, section):
         return http_check(url, {"Authorization": "Bearer " + str(values["access_token"])})
     if section == "bridge":
         url = str(values["url"]).strip()
-        # only web links, so a test can never read a local file
         if urllib.parse.urlparse(url).scheme not in ("http", "https"):
             return "waTestMissing"
         headers = {"X-Api-Key": str(values["api_key"])} if values.get("api_key") else {}
         return http_check(url, headers)
-    # TODO provider: real request once the provider is chosen, for now only checks that the fields are filled
     return "waTestFilled"
 
 
@@ -126,7 +121,6 @@ def clean_link(data):
     url = str(data.get("url", "")).strip()[:500]
     desc = str(data.get("desc", "")).strip()[:200]
     parts = urllib.parse.urlparse(url)
-    # only web links, so a saved link can never run a script
     if not name or parts.scheme not in ("http", "https") or not parts.netloc:
         raise ValueError("bad link")
     return {"name": name, "url": url, "desc": desc}
@@ -204,7 +198,6 @@ class H(http.server.SimpleHTTPRequestHandler):
         super().do_GET()
 
     def read_json(self):
-        # JSON content type blocks simple cross-site form posts
         if not self.headers.get("Content-Type", "").startswith("application/json"):
             self.send_error(415)
             return None

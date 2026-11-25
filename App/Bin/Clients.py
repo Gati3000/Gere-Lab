@@ -21,7 +21,6 @@ class Dumper(yaml.SafeDumper):
 
 
 def _quote_digits(dumper, value):
-    # liczby i telefony zawsze w cudzyslowie, zeby YAML nie obcial zer
     style = "'" if value.isdigit() or value[:1] == "+" else None
     return dumper.represent_scalar("tag:yaml.org,2002:str", value, style=style)
 
@@ -140,7 +139,6 @@ def create_client(whatsapp, name=""):
         while True:
             client_id = f"{number:06d}"
             try:
-                # mkdir zajmuje ID atomowo, także gdy drugi proces tworzy klienta w tej samej chwili
                 (DRIVE_CLIENTS / client_id).mkdir()
                 break
             except FileExistsError:

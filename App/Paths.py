@@ -1,9 +1,7 @@
-# Miejsce na sciezki
-#  linki do updatuw progreamiw tzrecich
 
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent   # Gere-Lab/
+ROOT = Path(__file__).resolve().parent.parent
 APP = ROOT / "App"
 BIN = APP / "Bin"
 MAIN = ROOT / "Main.py"
@@ -17,11 +15,10 @@ USER = ROOT / "User"
 WEB_CONFIG = USER / "Web-Config.yml"
 INDEXES = USER / "Indexes.yml"
 MANIFEST = APP / "Manifest.py"
-UPDATE = APP / "Update.py"
+UPDATE = MAINTENANCE / "Update.py"
 
-# Gere-Drive (drugie repo, obok Gere-Lab)
 DRIVE = ROOT.parent / "Gere-Drive"
-if not (DRIVE / ".git").is_dir():   # Gere-Drive niepobrane, lokalny zapas w Gere-Lab/Database
+if not (DRIVE / ".git").is_dir():
     DRIVE = ROOT / "Database"
 DRIVE_MESSAGES = DRIVE / "Messeges"
 DRIVE_PHOTOS = DRIVE_MESSAGES / "Photos"

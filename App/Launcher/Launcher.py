@@ -225,7 +225,7 @@ def main():
     set_prompt()
     if not register_lab():
         return 1
-    subprocess.run([sys.executable, str(REPO / "App" / "Update.py")])
+    subprocess.run([sys.executable, str(REPO / "App" / "Maintenance" / "Update.py")])
     MARK.parent.mkdir(parents=True, exist_ok=True)
     MARK.touch()
     check_updates()
