@@ -6,10 +6,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent   # Gere-Lab/
 APP = ROOT / "App"
 MAIN = ROOT / "Main.py"
-LANGUAGE = APP / "Language"
 MAINTENANCE = APP / "Maintenance"
 WHATSAPP = APP / "WhatsApp"
 WEB_UI = APP / "Web-Ui"
+LANGUAGE = WEB_UI / "Language"
 WEB_UI_UI = WEB_UI / "Ui"
 WEB_UI_BIN = WEB_UI / "Bin"
 USER = ROOT / "User"
