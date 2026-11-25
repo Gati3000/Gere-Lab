@@ -105,5 +105,16 @@
  "invoiceTotal": "Razem",
  "invoiceError": "Nie udało się pobrać lub zapisać faktur. Spróbuj ponownie.",
  "invRejectTitle": "Odrzucić fakturę?",
- "invRejectHint": "Powód jest opcjonalny i zapisze się razem z fakturą."
+ "invRejectHint": "Powód jest opcjonalny i zapisze się razem z fakturą.",
+ "invTitle": "Faktury",
+ "invDelayTitle": "Opóźnienie faktury",
+ "invDelayHint": "Ile minut po ostatniej wiadomości klienta program tworzy fakturę. Zmiana działa od razu, bez restartu.",
+ "invDelayLabel": "Opóźnienie (minuty)",
+ "invDelayBad": "Podaj liczbę minut od 0 do 1440",
+ "restartTitle": "Zapis wymaga restartu",
+ "restartHint": "Zmiana ustawień WhatsApp zadziała po restarcie webhooka. Zrestartować teraz?",
+ "restartLater": "Restartuj później",
+ "restartNow": "Restartuj teraz",
+ "restartDone": "Webhook zrestartowany",
+ "restartFailed": "Restart się nie udał. Użyj Lab restart"
 }

@@ -105,5 +105,16 @@
  "invoiceTotal": "Total",
  "invoiceError": "Could not load or save invoices. Try again.",
  "invRejectTitle": "Reject this invoice?",
- "invRejectHint": "The reason is optional and is saved with the invoice."
+ "invRejectHint": "The reason is optional and is saved with the invoice.",
+ "invTitle": "Invoices",
+ "invDelayTitle": "Invoice delay",
+ "invDelayHint": "How many minutes after the client's last message the program creates the invoice. The change works immediately, no restart needed.",
+ "invDelayLabel": "Delay (minutes)",
+ "invDelayBad": "Enter a number of minutes from 0 to 1440",
+ "restartTitle": "Saving requires a restart",
+ "restartHint": "The WhatsApp settings change takes effect after the webhook restarts. Restart now?",
+ "restartLater": "Restart later",
+ "restartNow": "Restart now",
+ "restartDone": "Webhook restarted",
+ "restartFailed": "Restart failed. Use Lab restart"
 }

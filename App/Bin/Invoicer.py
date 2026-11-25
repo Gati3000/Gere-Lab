@@ -16,7 +16,7 @@ log = logging.getLogger("gere")
 
 
 def run_once(conn):
-    cutoff = (datetime.now(timezone.utc) - timedelta(minutes=DELAY_MINUTES)).isoformat(timespec="seconds")
+    cutoff = (datetime.now(timezone.utc) - timedelta(minutes=Invoices.delay_minutes())).isoformat(timespec="seconds")
     rows = conn.execute(
         "SELECT id, contact, vin, request_text FROM inquiries "
         "WHERE status = 'new' AND needs_human = 0 AND vin_valid = 1 AND last_message_at <= ? "

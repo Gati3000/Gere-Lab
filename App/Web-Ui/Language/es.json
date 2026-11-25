@@ -105,5 +105,16 @@
  "invoiceTotal": "Total",
  "invoiceError": "No se pudieron cargar o guardar las facturas. Inténtalo de nuevo.",
  "invRejectTitle": "¿Rechazar la factura?",
- "invRejectHint": "El motivo es opcional y se guarda con la factura."
+ "invRejectHint": "El motivo es opcional y se guarda con la factura.",
+ "invTitle": "Facturas",
+ "invDelayTitle": "Retraso de la factura",
+ "invDelayHint": "Cuántos minutos después del último mensaje del cliente el programa crea la factura. El cambio funciona al instante, sin reiniciar.",
+ "invDelayLabel": "Retraso (minutos)",
+ "invDelayBad": "Introduce un número de minutos de 0 a 1440",
+ "restartTitle": "Guardar requiere reiniciar",
+ "restartHint": "El cambio de ajustes de WhatsApp se aplica tras reiniciar el webhook. ¿Reiniciar ahora?",
+ "restartLater": "Reiniciar más tarde",
+ "restartNow": "Reiniciar ahora",
+ "restartDone": "Webhook reiniciado",
+ "restartFailed": "El reinicio falló. Usa Lab restart"
 }

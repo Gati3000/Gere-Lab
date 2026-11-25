@@ -1,5 +1,14 @@
 # Gere-Lab
-Tools for Gere for operating his comapany
+Tools for Gere for operating his company. WhatsApp messages from clients land in one web panel, and Gere only approves: invoices, shipment labels and part searches.
+
+## How it works
+
+```
+WhatsApp -> webhook -> messages (Gere-Drive/Messeges)
+         -> inquiries (VIN + part request)
+         -> client profile + invoice to approve
+         -> web panel (Home): Accept / Reject
+```
 
 <!-- GERE-INSTALL -->
 ## Installation
@@ -46,3 +55,19 @@ To run the Launcher again by hand:
 ```bash
 python3 ~/Gere-Lab/App/Launcher/Launcher.py
 ```
+
+## Web panel
+
+Runs on port 8080 (`http://<address>:8080`). Pages: Home (messages and invoices to approve), Settings, Links, Instruction, Shipment. Languages: PL, EN, ES. Dark theme by default, light theme on a button.
+
+The panel has no login yet. Reach it only through Tailscale or a local network.
+
+## Gere-Drive
+
+Data lives in a separate repo, Gere-Drive: messages, clients, invoices, parts. It sits next to Gere-Lab (`../Gere-Drive`) and is updated with `Lab drive`. Real client data is never committed, only the folder skeleton.
+
+## Status
+
+Working: WhatsApp Cloud API webhook, VIN extraction, inquiries, client profiles, invoices with PDF, web panel.
+
+Not finished: shipment labels and MRW, WhatsApp Bridge (needs testing), Ollama and Open WebUI.
