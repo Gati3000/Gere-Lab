@@ -43,6 +43,7 @@ details[open] > summary { border-bottom: 1px solid var(--border); }
     </div>
     <div class="row">
       <a class="btn" href="Index.html" data-i18n="links"></a>
+      <a class="btn" href="Shipment.html" data-i18n="shipment"></a>
       <a class="btn" href="Settings.html" data-i18n="settings"></a>
     </div>
   </div>
@@ -89,6 +90,7 @@ Pomocnicze klasy: <code>, <pre>, <ul>/<ol>, <p class="warn"> (ważne), <p class=
         <li><code>Lab stop</code> (<code>Lab -s</code>) - zatrzymuje program, <code>Lab restart</code> - zatrzymuje i uruchamia od nowa.</li>
         <li><code>Lab update</code> - sprawdza gałąź Main i aktualizuje, <code>Lab update -b</code> - to samo dla gałęzi Beta.</li>
         <li><code>Lab setup</code> - ponownie uruchamia pierwszą konfigurację, <code>Lab drive</code> - aktualizuje Gere-Drive (jeśli jest zainstalowany).</li>
+        <li><code>Lab branch</code> - pokazuje aktualną gałąź i wersję, <code>Lab remove</code> (<code>Lab -rm</code>) - usuwa Gere-Lab (wymaga hasła roota).</li>
         <li><code>Lab help</code> - pokazuje pomoc.</li>
       </ul>
       <p class="meta">Retencja i linki działają od razu po zapisaniu. Włączenie Cloud API oraz zmiana hosta lub portu webhooka wymagają <code>Lab restart</code>, bo webhook startuje razem z programem.</p>
@@ -99,6 +101,7 @@ Pomocnicze klasy: <code>, <pre>, <ul>/<ol>, <p class="warn"> (ważne), <p class=
         <li><code>Lab stop</code> (<code>Lab -s</code>) stops the program, <code>Lab restart</code> stops and starts it again.</li>
         <li><code>Lab update</code> checks the Main branch and updates, <code>Lab update -b</code> does the same for the Beta branch.</li>
         <li><code>Lab setup</code> runs the first-time setup again, <code>Lab drive</code> updates Gere-Drive (if installed).</li>
+        <li><code>Lab branch</code> shows the current branch and version, <code>Lab remove</code> (<code>Lab -rm</code>) removes Gere-Lab (needs the root password).</li>
         <li><code>Lab help</code> shows help.</li>
       </ul>
       <p class="meta">Retention and links take effect as soon as you save. Enabling Cloud API and changing the webhook host or port require <code>Lab restart</code>, because the webhook starts together with the program.</p>
@@ -109,6 +112,7 @@ Pomocnicze klasy: <code>, <pre>, <ul>/<ol>, <p class="warn"> (ważne), <p class=
         <li><code>Lab stop</code> (<code>Lab -s</code>) detiene el programa, <code>Lab restart</code> lo detiene y lo inicia de nuevo.</li>
         <li><code>Lab update</code> comprueba la rama Main y actualiza, <code>Lab update -b</code> hace lo mismo con la rama Beta.</li>
         <li><code>Lab setup</code> repite la configuración inicial, <code>Lab drive</code> actualiza Gere-Drive (si está instalado).</li>
+        <li><code>Lab branch</code> muestra la rama y la versión actuales, <code>Lab remove</code> (<code>Lab -rm</code>) elimina Gere-Lab (requiere la contraseña de root).</li>
         <li><code>Lab help</code> muestra la ayuda.</li>
       </ul>
       <p class="meta">La retención y los enlaces surten efecto al guardar. Activar Cloud API y cambiar el host o el puerto del webhook requieren <code>Lab restart</code>, porque el webhook arranca junto con el programa.</p>
@@ -138,31 +142,85 @@ Pomocnicze klasy: <code>, <pre>, <ul>/<ol>, <p class="warn"> (ważne), <p class=
 </details>
 
 <details>
-  <summary><span data-l="pl">Etykiety do akceptacji</span><span data-l="en">Labels awaiting approval</span><span data-l="es">Etiquetas pendientes de aprobación</span></summary>
+  <summary><span data-l="pl">Faktury do akceptacji</span><span data-l="en">Invoices awaiting approval</span><span data-l="es">Facturas pendientes de aprobación</span></summary>
   <div class="body">
     <div data-l="pl">
-      <p>Prawe okno zawiera etykiety wysyłkowe przygotowane na podstawie wiadomości: odbiorca, adres, część i przewoźnik. Sprawdzasz dane i wybierasz:</p>
+      <p>Prawe okno zawiera faktury przygotowane na podstawie wiadomości: klient, pozycje i suma. Sprawdzasz dane i wybierasz:</p>
       <ul>
-        <li><b>Akceptuj</b> - etykieta jest oznaczona jako zaakceptowana.</li>
-        <li><b>Odrzuć</b> - otwiera okno, w którym opisujesz, co trzeba poprawić (np. zły adres, błędny numer części), i wysyłasz powód.</li>
+        <li><b>Akceptuj</b> - faktura zostaje zaakceptowana i powstaje jej plik PDF w folderze Invoices/Accepted.</li>
+        <li><b>Odrzuć</b> - otwiera okno z opcjonalnym powodem odrzucenia, który zapisuje się razem z fakturą.</li>
       </ul>
-      <p class="warn">Wersja Beta: etykiety na Home są na razie przykładowe, a decyzja Akceptuj/Odrzuć jeszcze nie zapisuje się na serwerze (po odświeżeniu strony znika).</p>
+      <p class="warn">Decyzja zapisuje się na serwerze i jest ostateczna. Cena na fakturze jest na razie zawsze 0.00 (mechanizm wyceny jeszcze nie istnieje), więc sprawdź sumę przed akceptacją.</p>
     </div>
     <div data-l="en">
-      <p>The right window holds shipping labels prepared from the messages: recipient, address, part and carrier. Check the data and choose:</p>
+      <p>The right window holds invoices prepared from the messages: client, items and total. Check the data and choose:</p>
       <ul>
-        <li><b>Accept</b> - the label is marked as accepted.</li>
-        <li><b>Reject</b> - opens a window where you describe what needs fixing (e.g. wrong address, wrong part number) and send the reason.</li>
+        <li><b>Accept</b> - the invoice is accepted and its PDF is created in the Invoices/Accepted folder.</li>
+        <li><b>Reject</b> - opens a window with an optional rejection reason, which is saved with the invoice.</li>
       </ul>
-      <p class="warn">Beta version: the labels on Home are sample data for now, and the Accept/Reject decision is not yet saved on the server (it disappears when the page is refreshed).</p>
+      <p class="warn">The decision is saved on the server and is final. The invoice price is always 0.00 for now (the pricing mechanism does not exist yet), so check the total before accepting.</p>
     </div>
     <div data-l="es">
-      <p>La ventana derecha contiene las etiquetas de envío preparadas a partir de los mensajes: destinatario, dirección, pieza y transportista. Revisa los datos y elige:</p>
+      <p>La ventana derecha contiene las facturas preparadas a partir de los mensajes: cliente, líneas y total. Revisa los datos y elige:</p>
       <ul>
-        <li><b>Aceptar</b> - la etiqueta se marca como aceptada.</li>
-        <li><b>Rechazar</b> - abre una ventana donde describes qué hay que corregir (p. ej. dirección errónea, número de pieza incorrecto) y envías el motivo.</li>
+        <li><b>Aceptar</b> - la factura se acepta y se crea su PDF en la carpeta Invoices/Accepted.</li>
+        <li><b>Rechazar</b> - abre una ventana con un motivo de rechazo opcional, que se guarda junto con la factura.</li>
       </ul>
-      <p class="warn">Versión Beta: las etiquetas de Home son de ejemplo por ahora, y la decisión Aceptar/Rechazar todavía no se guarda en el servidor (desaparece al recargar la página).</p>
+      <p class="warn">La decisión se guarda en el servidor y es definitiva. El precio de la factura es siempre 0.00 por ahora (el mecanismo de precios aún no existe), así que revisa el total antes de aceptar.</p>
+    </div>
+  </div>
+</details>
+
+<details>
+  <summary><span data-l="pl">Jak wiadomość staje się fakturą</span><span data-l="en">How a message becomes an invoice</span><span data-l="es">Cómo un mensaje se convierte en factura</span></summary>
+  <div class="body">
+    <div data-l="pl">
+      <ol>
+        <li>Wiadomości jednego kontaktu w oknie 60 minut łączą się w jedno zapytanie.</li>
+        <li>Po 5 minutach od ostatniej wiadomości program sprawdza zapytanie.</li>
+        <li>Faktura powstaje tylko wtedy, gdy zapytanie ma poprawny VIN i opis części.</li>
+        <li>Faktura trafia do okna Faktury do akceptacji.</li>
+      </ol>
+      <p class="warn">Zapytania bez poprawnego VIN-u, z kilkoma VIN-ami, z samym VIN-em lub tylko ze zdjęciami nie dostają faktury i na razie nie są nigdzie pokazywane.</p>
+      <p class="meta">Odrzucona faktura nie zmienia statusu zapytania. Nowa wiadomość klienta otwiera nowe zapytanie.</p>
+    </div>
+    <div data-l="en">
+      <ol>
+        <li>Messages from one contact within a 60 minute window are grouped into one inquiry.</li>
+        <li>5 minutes after the last message the program checks the inquiry.</li>
+        <li>An invoice is created only if the inquiry has a valid VIN and a part description.</li>
+        <li>The invoice appears in the Invoices awaiting approval window.</li>
+      </ol>
+      <p class="warn">Inquiries with an invalid VIN, several VINs, a VIN only, or only photos get no invoice and are not shown anywhere for now.</p>
+      <p class="meta">A rejected invoice does not change the inquiry status. A new message from the client opens a new inquiry.</p>
+    </div>
+    <div data-l="es">
+      <ol>
+        <li>Los mensajes de un contacto dentro de una ventana de 60 minutos se agrupan en una consulta.</li>
+        <li>5 minutos después del último mensaje el programa revisa la consulta.</li>
+        <li>La factura se crea solo si la consulta tiene un VIN válido y una descripción de la pieza.</li>
+        <li>La factura aparece en la ventana Facturas pendientes de aprobación.</li>
+      </ol>
+      <p class="warn">Las consultas con VIN no válido, varios VIN, solo un VIN o solo fotos no reciben factura y por ahora no se muestran en ningún sitio.</p>
+      <p class="meta">Una factura rechazada no cambia el estado de la consulta. Un mensaje nuevo del cliente abre una consulta nueva.</p>
+    </div>
+  </div>
+</details>
+
+<details>
+  <summary><span data-l="pl">Etykiety (edycja i druk)</span><span data-l="en">Labels (edit and print)</span><span data-l="es">Etiquetas (editar e imprimir)</span></summary>
+  <div class="body">
+    <div data-l="pl">
+      <p>Strona Etykiety ma po lewej dane etykiety (nadawca, odbiorca), a po prawej podgląd. Podgląd jest dokładnie tym, co się drukuje. Przycisk <b>Drukuj</b> otwiera druk przeglądarki, a <b>Reset</b> przywraca dane przykładowe.</p>
+      <p class="warn">Dane na tej stronie są na razie przykładowe i nie pochodzą z wiadomości. Ostatnia edycja jest pamiętana tylko w tej przeglądarce.</p>
+    </div>
+    <div data-l="en">
+      <p>The Labels page has the label data (sender, recipient) on the left and a preview on the right. The preview is exactly what gets printed. <b>Print</b> opens the browser print dialog and <b>Reset</b> restores the sample data.</p>
+      <p class="warn">The data on this page is sample data for now and does not come from messages. The last edit is remembered only in this browser.</p>
+    </div>
+    <div data-l="es">
+      <p>La página Etiquetas tiene a la izquierda los datos de la etiqueta (remitente, destinatario) y a la derecha una vista previa. La vista previa es exactamente lo que se imprime. <b>Imprimir</b> abre la impresión del navegador y <b>Restablecer</b> recupera los datos de ejemplo.</p>
+      <p class="warn">Los datos de esta página son de ejemplo por ahora y no proceden de los mensajes. La última edición se recuerda solo en este navegador.</p>
     </div>
   </div>
 </details>
@@ -180,6 +238,7 @@ Pomocnicze klasy: <code>, <pre>, <ul>/<ol>, <p class="warn"> (ważne), <p class=
         <li><b>Bridge (WhatsApp Web)</b> - zewnętrzny most do zwykłego WhatsAppa, np. WAHA. Podajesz jego <i>Link (URL)</i> (np. <code>http://localhost:3000</code>), <i>Klucz API</i> i <i>Nazwę sesji</i> (domyślnie <code>default</code>).</li>
         <li><b>Dostawca zewnętrzny</b> - pośrednik z oficjalnym API, np. Twilio lub 360dialog. Pola: <i>Account SID / ID klienta</i>, <i>Auth token / klucz API</i> i <i>Numer nadawcy</i>.</li>
       </ul>
+      <p class="warn">Działa tylko Cloud API. Bridge i Dostawca zewnętrzny mają na razie tylko pola ustawień, żaden kod ich nie używa.</p>
       <p class="meta">Pola z hasłami (tokeny, sekrety, klucze) są ukryte jako ********. Jeśli ich nie ruszysz, zostają bez zmian po zapisie. Dane trafiają do pliku User/Web-Config.yml.</p>
     </div>
     <div data-l="en">
@@ -189,6 +248,7 @@ Pomocnicze klasy: <code>, <pre>, <ul>/<ol>, <p class="warn"> (ważne), <p class=
         <li><b>Bridge (WhatsApp Web)</b> - an external bridge to regular WhatsApp, e.g. WAHA. You enter its <i>Link (URL)</i> (e.g. <code>http://localhost:3000</code>), <i>API key</i> and <i>Session name</i> (default <code>default</code>).</li>
         <li><b>External provider</b> - an intermediary with the official API, e.g. Twilio or 360dialog. Fields: <i>Account SID / client ID</i>, <i>Auth token / API key</i> and <i>Sender number</i>.</li>
       </ul>
+      <p class="warn">Only Cloud API works. Bridge and External provider only have settings fields for now, no code uses them.</p>
       <p class="meta">Secret fields (tokens, secrets, keys) are hidden as ********. If you do not touch them they stay unchanged after saving. Data is stored in User/Web-Config.yml.</p>
     </div>
     <div data-l="es">
@@ -198,6 +258,7 @@ Pomocnicze klasy: <code>, <pre>, <ul>/<ol>, <p class="warn"> (ważne), <p class=
         <li><b>Bridge (WhatsApp Web)</b> - un puente externo al WhatsApp normal, p. ej. WAHA. Indicas su <i>Enlace (URL)</i> (p. ej. <code>http://localhost:3000</code>), <i>Clave API</i> y <i>Nombre de sesión</i> (por defecto <code>default</code>).</li>
         <li><b>Proveedor externo</b> - un intermediario con la API oficial, p. ej. Twilio o 360dialog. Campos: <i>Account SID / ID de cliente</i>, <i>Auth token / clave API</i> y <i>Número remitente</i>.</li>
       </ul>
+      <p class="warn">Solo funciona Cloud API. Bridge y Proveedor externo solo tienen campos de ajustes por ahora, ningún código los usa.</p>
       <p class="meta">Los campos secretos (tokens, secretos, claves) se ocultan como ********. Si no los tocas, se mantienen sin cambios al guardar. Los datos se guardan en User/Web-Config.yml.</p>
     </div>
   </div>
