@@ -4,8 +4,9 @@ from pathlib import Path
 
 # Paths.py is in App/ (three levels above this file)
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
-from Paths import WEB_UI_UI, WEB_UI_BIN, LANGUAGE, WEB_CONFIG, INDEXES
+from Paths import WEB_UI_UI, WEB_UI_BIN, LANGUAGE, WEB_CONFIG, INDEXES, BIN
 from Messages import prune, read_messages, retention_days
+sys.path.insert(0, str(BIN))
 import Invoices
 
 PORT = 8080

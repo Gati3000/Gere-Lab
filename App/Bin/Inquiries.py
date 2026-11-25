@@ -137,7 +137,7 @@ def open_inquiry(conn, contact, received_at, window_minutes):
     if contact is None:
         return None
     row = conn.execute(
-        "SELECT id, last_message_at FROM inquiries WHERE contact = ? "
+        "SELECT id, last_message_at FROM inquiries WHERE contact = ? AND status NOT IN ('accepted', 'rejected', 'invoiced') "
         "ORDER BY last_message_at DESC, id DESC LIMIT 1", (contact,)).fetchone()
     if row is None:
         return None

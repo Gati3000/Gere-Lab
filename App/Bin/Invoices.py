@@ -4,8 +4,8 @@ Statusy: pending (czeka na Gere), approved, rejected. Decyzja jest ostateczna.
 Kwoty trzymamy jako tekst z dwoma miejscami po przecinku (Decimal, nigdy float).
 
 Z linii poleceń (z katalogu Gere-Lab):
-    python3 App/Invoices.py demo     dwie przykładowe faktury do obejrzenia na stronie głównej
-    python3 App/Invoices.py list     lista faktur
+    python3 App/Bin/Invoices.py demo     dwie przykładowe faktury do obejrzenia na stronie głównej
+    python3 App/Bin/Invoices.py list     lista faktur
 """
 import argparse
 import json
@@ -15,11 +15,16 @@ import threading
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import Clients
-from Paths import DRIVE_INVOICES
+from Paths import DRIVE_INVOICES, DRIVE_INVOICES_REVIEW, DRIVE_INVOICES_ACCEPTED, DRIVE_INVOICES_REJECTED
 
 ID = re.compile(r"^INV-\d{6}$")
 STATUSES = ("pending", "approved", "rejected")
+FOLDERS = {"pending": DRIVE_INVOICES_REVIEW, "approved": DRIVE_INVOICES_ACCEPTED, "rejected": DRIVE_INVOICES_REJECTED}
 CURRENCY = "EUR"
 MAX_ITEMS = 50
 CENT = Decimal("0.01")
@@ -38,10 +43,18 @@ def _now():
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def _path(invoice_id):
+def _path(invoice_id, status="pending"):
     if not ID.match(str(invoice_id)):
         raise ValueError("bad invoice id")
-    return DRIVE_INVOICES / f"{invoice_id}.json"
+    return FOLDERS[status] / f"{invoice_id}.json"
+
+
+def _find(invoice_id):
+    for status in STATUSES:
+        path = _path(invoice_id, status)
+        if path.exists():
+            return path
+    return None
 
 
 def _write(path, data):
@@ -134,8 +147,9 @@ def create_invoice(items, client_id=None, contact="", inquiry_id=None, note="", 
         "reject_reason": "",
     }
     with LOCK:
-        DRIVE_INVOICES.mkdir(parents=True, exist_ok=True)
-        numbers = [int(p.stem[4:]) for p in DRIVE_INVOICES.glob("INV-*.json") if ID.match(p.stem)]
+        for folder in FOLDERS.values():
+            folder.mkdir(parents=True, exist_ok=True)
+        numbers = [int(p.stem[4:]) for folder in FOLDERS.values() for p in folder.glob("INV-*.json") if ID.match(p.stem)]
         number = max(numbers + [0]) + 1
         while True:
             invoice_id = f"INV-{number:06d}"
@@ -153,20 +167,20 @@ def create_invoice(items, client_id=None, contact="", inquiry_id=None, note="", 
 
 
 def read_invoice(invoice_id):
-    return _read(_path(invoice_id))
+    path = _find(invoice_id)
+    return _read(path) if path else None
 
 
 def list_invoices(status=None):
     """Najnowsze pierwsze. status=None = wszystkie."""
-    if not DRIVE_INVOICES.is_dir():
-        return []
     out = []
-    for path in DRIVE_INVOICES.glob("INV-*.json"):
-        if not ID.match(path.stem):
-            continue
-        invoice = _read(path)
-        if invoice is not None and (status is None or invoice.get("status") == status):
-            out.append(invoice)
+    for folder_status in ((status,) if status else STATUSES):
+        for path in FOLDERS[folder_status].glob("INV-*.json"):
+            if not ID.match(path.stem):
+                continue
+            invoice = _read(path)
+            if invoice is not None and (status is None or invoice.get("status") == status):
+                out.append(invoice)
     return sorted(out, key=lambda i: str(i.get("id", "")), reverse=True)
 
 
@@ -175,8 +189,8 @@ def decide(invoice_id, status, reason=""):
     if status not in ("approved", "rejected"):
         raise ValueError("bad status")
     with LOCK:
-        path = _path(invoice_id)
-        invoice = _read(path)
+        path = _find(invoice_id)
+        invoice = _read(path) if path else None
         if invoice is None:
             raise NotFound(invoice_id)
         if invoice.get("status") != "pending":
@@ -184,7 +198,16 @@ def decide(invoice_id, status, reason=""):
         invoice["status"] = status
         invoice["decided"] = _now()
         invoice["reject_reason"] = str(reason or "").strip()[:500] if status == "rejected" else ""
-        _write(path, invoice)
+        target = _path(invoice_id, status)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        _write(target, invoice)
+        path.unlink()
+        if status == "approved":
+            try:
+                import InvoicePdf
+                InvoicePdf.create(invoice, target.with_suffix(".pdf"))
+            except Exception as exc:
+                print(f"PDF {invoice_id} nie powstał: {exc}", file=sys.stderr, flush=True)
         return invoice
 
 
